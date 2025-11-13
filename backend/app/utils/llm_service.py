@@ -1,7 +1,7 @@
 """
-LLM service using OpenAI for English reasoning
+LLM service using Groq for English reasoning
 """
-import openai
+from groq import AsyncGroq
 import logging
 from typing import List, Dict, Optional
 import json
@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class LLMService:
-    """OpenAI LLM service for waste intelligence reasoning"""
+    """Groq LLM service for waste intelligence reasoning"""
     
     def __init__(self):
-        openai.api_key = settings.OPENAI_API_KEY
-        self.model = "gpt-4"  # or "gpt-3.5-turbo"
+        self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
+        self.model = "llama-3.1-70b-versatile"  # Free Groq model
     
     async def reason_about_waste(
         self,
@@ -47,8 +47,8 @@ class LLMService:
                 weight_estimate=weight_estimate
             )
             
-            # Call OpenAI
-            response = await openai.ChatCompletion.acreate(
+            # Call Groq
+            response = await self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {
@@ -246,11 +246,12 @@ class LLMService:
     
     async def translate_to_hindi(self, english_text: str) -> str:
         """
-        Translate English text to Hindi using OpenAI
+        Translate English text to Hindi using local Whisper or Groq
+        Note: For better translation, we use Groq's LLM
         """
         try:
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo",
+            response = await self.client.chat.completions.create(
+                model="llama-3.1-8b-instant",  # Faster model for translation
                 messages=[
                     {
                         "role": "system",
@@ -275,11 +276,11 @@ class LLMService:
     
     async def translate_to_english(self, hindi_text: str) -> str:
         """
-        Translate Hindi text to English using OpenAI
+        Translate Hindi text to English using Groq
         """
         try:
-            response = await openai.ChatCompletion.acreate(
-                model="gpt-3.5-turbo",
+            response = await self.client.chat.completions.create(
+                model="llama-3.1-8b-instant",  # Faster model for translation
                 messages=[
                     {
                         "role": "system",

@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     MILVUS_HOST: str = "localhost"
     MILVUS_PORT: int = 19530
     
-    # OpenAI
-    OPENAI_API_KEY: str
+    # Groq API (Free LLM)
+    GROQ_API_KEY: str
     
     # App Config
     APP_NAME: str = "ReNova"
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     
     # Model Paths
     CLIP_MODEL: str = "openai/clip-vit-base-patch32"
-    WHISPER_MODEL: str = "base"
+    WHISPER_MODEL: str = "small"  # Using local small model for translation
     
     # OSM APIs
     NOMINATIM_URL: str = "https://nominatim.openstreetmap.org"
