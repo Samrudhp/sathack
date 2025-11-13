@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useUserStore, useScanStore } from '../store';
@@ -17,6 +17,7 @@ L.Icon.Default.mergeOptions({
 
 export default function Map() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { language } = useUserStore();
   const { currentScan } = useScanStore();
   const { latitude, longitude, loading: locationLoading } = useGeolocation();
@@ -25,10 +26,13 @@ export default function Map() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (latitude && longitude) {
+    // Check if recyclers passed from Result page
+    if (location.state?.recyclers) {
+      setRecyclers(location.state.recyclers);
+    } else if (latitude && longitude) {
       loadRecyclers();
     }
-  }, [latitude, longitude]);
+  }, [latitude, longitude, location.state]);
 
   const loadRecyclers = async () => {
     setLoading(true);
@@ -100,30 +104,66 @@ export default function Map() {
             )}
             
             {/* Recyclers */}
-            {recyclers.map((recycler, i) => (
-              <Marker
-                key={i}
-                position={[recycler.location_lat, recycler.location_lon]}
-              >
-                <Popup>
-                  <div className="p-2">
-                    <b className="text-forest">{recycler.recycler_name}</b>
-                    <p className="text-sm text-olive-dark mt-1">
-                      {recycler.distance_km.toFixed(1)} km {language === 'en' ? 'away' : 'दूर'}
-                    </p>
-                    <p className="text-sm text-olive-dark">
-                      {language === 'en' ? 'Score:' : 'स्कोर:'} {recycler.total_score.toFixed(1)}
-                    </p>
-                    {recycler.materials_accepted && (
-                      <p className="text-xs mt-1">
-                        <b>{language === 'en' ? 'Accepts:' : 'स्वीकार करता है:'}</b><br/>
-                        {recycler.materials_accepted.join(', ')}
+            {recyclers.map((recycler, i) => {
+              // Handle coordinates - check if it's in location.coordinates format or direct lat/lon
+              const lat = recycler.location?.coordinates?.[1] || recycler.location_lat;
+              const lon = recycler.location?.coordinates?.[0] || recycler.location_lon;
+              
+              if (!lat || !lon) return null;
+              
+              return (
+                <Marker
+                  key={recycler.recycler_id || i}
+                  position={[lat, lon]}
+                >
+                  <Popup>
+                    <div className="p-2">
+                      <b className="text-forest">{recycler.name || recycler.recycler_name}</b>
+                      {recycler.address && (
+                        <p className="text-xs text-olive-dark mt-1">{recycler.address}</p>
+                      )}
+                      <p className="text-sm text-olive-dark mt-1">
+                        📏 {recycler.distance_km?.toFixed(1)} km {language === 'en' ? 'away' : 'दूर'}
                       </p>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+                      {recycler.estimated_travel_time_min && (
+                        <p className="text-sm text-olive-dark">
+                          ⏱️ ~{recycler.estimated_travel_time_min.toFixed(0)} min
+                        </p>
+                      )}
+                      {recycler.phone && (
+                        <p className="text-xs mt-1">
+                          📞 {recycler.phone}
+                        </p>
+                      )}
+                      {recycler.operating_hours && (
+                        <p className="text-xs mt-1">
+                          🕒 {recycler.operating_hours}
+                        </p>
+                      )}
+                      {recycler.total_score && (
+                        <p className="text-sm text-olive-dark mt-1">
+                          {language === 'en' ? 'Score:' : 'स्कोर:'} {recycler.total_score.toFixed(1)}
+                        </p>
+                      )}
+                      {recycler.materials_accepted && (
+                        <p className="text-xs mt-1">
+                          <b>{language === 'en' ? 'Accepts:' : 'स्वीकार:'}</b><br/>
+                          {Array.isArray(recycler.materials_accepted) 
+                            ? recycler.materials_accepted.join(', ')
+                            : recycler.materials_accepted
+                          }
+                        </p>
+                      )}
+                      {i === 0 && (
+                        <span className="inline-block bg-forest text-white px-2 py-1 rounded text-xs font-bold mt-2">
+                          {language === 'en' ? 'NEAREST' : 'निकटतम'}
+                        </span>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
           </MapContainer>
         </div>
 
@@ -144,23 +184,57 @@ export default function Map() {
           ) : (
             <div className="space-y-3">
               {recyclers.slice(0, 10).map((recycler, i) => (
-                <div key={i} className="p-4 bg-beige rounded-lg">
+                <div key={recycler.recycler_id || i} className="p-4 bg-beige rounded-lg border-2 border-olive-light">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold text-forest">{recycler.recycler_name}</h4>
-                      <p className="text-sm text-olive-dark mt-1">
-                        📍 {recycler.distance_km.toFixed(1)} km {language === 'en' ? 'away' : 'दूर'}
-                      </p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-forest text-lg">{recycler.name || recycler.recycler_name}</h4>
+                        {i === 0 && (
+                          <span className="bg-forest text-white px-2 py-1 rounded-full text-xs font-bold">
+                            {language === 'en' ? 'NEAREST' : 'निकटतम'}
+                          </span>
+                        )}
+                      </div>
+                      {recycler.address && (
+                        <p className="text-sm text-olive-dark mt-1">{recycler.address}</p>
+                      )}
+                      <div className="flex gap-4 text-sm mt-2">
+                        <span>
+                          � {recycler.distance_km?.toFixed(1)} km
+                        </span>
+                        {recycler.estimated_travel_time_min && (
+                          <span>
+                            ⏱️ ~{recycler.estimated_travel_time_min.toFixed(0)} min
+                          </span>
+                        )}
+                        {recycler.rating && (
+                          <span>
+                            ⭐ {recycler.rating}/5
+                          </span>
+                        )}
+                      </div>
+                      {recycler.phone && (
+                        <p className="text-sm mt-1">📞 {recycler.phone}</p>
+                      )}
+                      {recycler.operating_hours && (
+                        <p className="text-sm mt-1">🕒 {recycler.operating_hours}</p>
+                      )}
                       {recycler.materials_accepted && (
-                        <p className="text-xs mt-1 text-forest">
-                          {recycler.materials_accepted.slice(0, 3).join(', ')}
+                        <p className="text-xs mt-2 text-forest">
+                          <b>{language === 'en' ? 'Accepts:' : 'स्वीकार:'}</b> {
+                            Array.isArray(recycler.materials_accepted)
+                              ? recycler.materials_accepted.slice(0, 5).join(', ')
+                              : recycler.materials_accepted
+                          }
                         </p>
                       )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-olive-dark">{language === 'en' ? 'Score' : 'स्कोर'}</p>
-                      <p className="text-2xl font-bold text-forest">{recycler.total_score.toFixed(1)}</p>
-                    </div>
+                    {recycler.total_score && (
+                      <div className="text-right ml-4">
+                        <p className="text-sm text-olive-dark">{language === 'en' ? 'Score' : 'स्कोर'}</p>
+                        <p className="text-2xl font-bold text-forest">{recycler.total_score.toFixed(1)}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

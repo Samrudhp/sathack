@@ -17,7 +17,8 @@ from app.utils.fraud_service import fraud_service
 from app.services.database import (
     get_pending_items_collection,
     get_user_behavior_collection,
-    get_heatmap_tiles_collection
+    get_heatmap_tiles_collection,
+    get_recyclers_collection
 )
 from app.models.scan_models import PendingItemModel
 from bson import ObjectId
@@ -231,8 +232,36 @@ async def scan_image(
         logger.info(f"Scan {scan_id} completed successfully")
         
         # ==========================================
-        # Return Response
+        # Return Response with Full Recycler Details
         # ==========================================
+        
+        # Fetch full recycler details from DB
+        recyclers_collection = get_recyclers_collection()
+        recycler_response = []
+        
+        for r in recycler_ranking[:3]:
+            # Get full recycler document
+            recycler_doc = await recyclers_collection.find_one({"_id": ObjectId(r.recycler_id)})
+            
+            if recycler_doc:
+                recycler_response.append({
+                    "recycler_id": r.recycler_id,
+                    "name": r.recycler_name,
+                    "phone": recycler_doc.get("phone"),
+                    "address": recycler_doc.get("address"),
+                    "distance_km": r.distance_km,
+                    "estimated_travel_time_min": r.estimated_travel_time_min,
+                    "total_score": r.total_score,
+                    "rating": recycler_doc.get("rating"),
+                    "operating_hours": recycler_doc.get("operating_hours"),
+                    "materials_accepted": recycler_doc.get("materials_accepted", []),
+                    "location": {
+                        "type": r.location.type,
+                        "coordinates": r.location.coordinates
+                    },
+                    "route_summary": r.route_summary
+                })
+        
         return {
             "scan_id": scan_id,
             "material": material,
@@ -241,13 +270,16 @@ async def scan_image(
             "hazard_class": hazard_class,
             "disposal_instruction": output_text,
             "hazard_notes": llm_response.get("hazard_notes"),
+            "cleaning_recommendation": llm_response.get("cleaning_recommendation"),
             "estimated_credits": llm_response.get("estimated_credits", 0),
             "environmental_impact": {
                 "co2_saved_kg": llm_response.get("co2_saved_kg", 0),
                 "water_saved_liters": llm_response.get("water_saved_liters", 0),
                 "landfill_saved_kg": llm_response.get("landfill_saved_kg", 0)
             },
-            "recycler_ranking": recycler_ranking[:3],
+            "recycler_ranking": recycler_response,
+            "pickup_suggestions": llm_response.get("pickup_suggestions", []),
+            "citations": llm_response.get("citations", []),
             "language": language
         }
         

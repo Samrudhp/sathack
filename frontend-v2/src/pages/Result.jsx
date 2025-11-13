@@ -59,12 +59,12 @@ export default function Result() {
             </div>
             <div>
               <span className="text-olive-dark">{language === 'en' ? 'Cleanliness:' : 'स्वच्छता:'}</span>
-              <span className="font-bold ml-2">{(cleanliness_score * 100).toFixed(0)}%</span>
+              <span className="font-bold ml-2">{cleanliness_score?.toFixed ? cleanliness_score.toFixed(0) : cleanliness_score}%</span>
             </div>
             <div>
               <span className="text-olive-dark">{language === 'en' ? 'Hazard:' : 'खतरा:'}</span>
-              <span className={`font-bold ml-2 ${hazard_class === 'hazardous' ? 'text-hazard' : 'text-forest'}`}>
-                {hazard_class}
+              <span className={`font-bold ml-2 ${hazard_class ? 'text-hazard' : 'text-forest'}`}>
+                {hazard_class || (language === 'en' ? 'None' : 'कोई नहीं')}
               </span>
             </div>
           </div>
@@ -169,34 +169,91 @@ export default function Result() {
             </h3>
             <div className="space-y-3">
               {recycler_ranking.slice(0, 3).map((recycler, i) => (
-                <div key={i} className="flex justify-between items-center p-3 bg-beige rounded-lg">
-                  <div>
-                    <p className="font-semibold text-forest">{recycler.recycler_name || recycler.name}</p>
-                    <p className="text-sm text-olive-dark">
-                      {recycler.distance_km?.toFixed(1) || '0.0'} km {language === 'en' ? 'away' : 'दूर'}
+                <div key={i} className="p-4 bg-beige rounded-lg border-2 border-olive-light">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <p className="font-bold text-forest text-lg">{recycler.name}</p>
+                      <p className="text-sm text-olive-dark mt-1">{recycler.address}</p>
+                    </div>
+                    {i === 0 && (
+                      <span className="bg-forest text-white px-3 py-1 rounded-full text-xs font-bold">
+                        {language === 'en' ? 'NEAREST' : 'निकटतम'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-4 text-sm mt-3">
+                    <div>
+                      <span className="text-olive-dark">📏 Distance:</span>
+                      <span className="font-bold ml-1">{recycler.distance_km?.toFixed(1)} km</span>
+                    </div>
+                    <div>
+                      <span className="text-olive-dark">⏱️ Time:</span>
+                      <span className="font-bold ml-1">~{recycler.estimated_travel_time_min?.toFixed(0)} min</span>
+                    </div>
+                    {recycler.rating && (
+                      <div>
+                        <span className="text-olive-dark">⭐ Rating:</span>
+                        <span className="font-bold ml-1">{recycler.rating}/5</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {recycler.phone && (
+                    <p className="text-sm mt-2">
+                      <span className="text-olive-dark">📞 Phone:</span>
+                      <span className="ml-1">{recycler.phone}</span>
                     </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-olive-dark">{language === 'en' ? 'Score' : 'स्कोर'}</p>
-                    <p className="font-bold text-forest">{recycler.total_score?.toFixed(1) || '0.0'}</p>
-                  </div>
+                  )}
+                  
+                  {recycler.operating_hours && (
+                    <p className="text-sm mt-1">
+                      <span className="text-olive-dark">🕒 Hours:</span>
+                      <span className="ml-1">{recycler.operating_hours}</span>
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
-            <button onClick={() => navigate('/map')} className="btn-secondary w-full mt-4">
-              🗺️ {language === 'en' ? 'View on Map' : 'मानचित्र पर देखें'}
+            
+            {/* Show on Map Button */}
+            <button
+              onClick={() => navigate('/map', { 
+                state: { 
+                  recyclers: recycler_ranking,
+                  material: material,
+                  userLocation: { lat: currentScan?.location?.lat, lon: currentScan?.location?.lon }
+                }
+              })}
+              className="btn-secondary w-full mt-4"
+            >
+              🗺️ {language === 'en' ? 'Show All on Map' : 'मानचित्र पर सभी दिखाएं'}
             </button>
           </div>
         )}
 
         {/* Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <button onClick={() => navigate('/scan')} className="btn-primary">
-            📸 {language === 'en' ? 'Scan Again' : 'फिर से स्कैन करें'}
+        <div className="space-y-4">
+          <button 
+            onClick={() => navigate('/map', { 
+              state: { 
+                recyclers: recycler_ranking,
+                material: material 
+              } 
+            })} 
+            className="btn-primary w-full text-lg py-4"
+          >
+            🗺️ {language === 'en' ? 'Explore Map & Find Recyclers' : 'मानचित्र देखें और रीसाइकलर खोजें'}
           </button>
-          <button onClick={() => navigate('/voice')} className="btn-secondary">
-            🎤 {language === 'en' ? 'Voice Query' : 'आवाज़ प्रश्न'}
-          </button>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <button onClick={() => navigate('/scan')} className="btn-secondary">
+              📸 {language === 'en' ? 'Scan Again' : 'फिर से स्कैन करें'}
+            </button>
+            <button onClick={() => navigate('/voice')} className="btn-secondary">
+              🎤 {language === 'en' ? 'Voice' : 'आवाज़'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@ class LLMService:
     
     def __init__(self):
         self.client = AsyncGroq(api_key=settings.GROQ_API_KEY)
-        self.model = "llama-3.1-70b-versatile"  # Free Groq model
+        self.model = "llama-3.3-70b-versatile"  # Updated model (3.1 decommissioned)
     
     async def reason_about_waste(
         self,
@@ -251,7 +251,7 @@ class LLMService:
         """
         try:
             response = await self.client.chat.completions.create(
-                model="llama-3.1-8b-instant",  # Faster model for translation
+                model="llama-3.2-3b-preview",  # Updated faster model
                 messages=[
                     {
                         "role": "system",
@@ -280,7 +280,7 @@ class LLMService:
         """
         try:
             response = await self.client.chat.completions.create(
-                model="llama-3.1-8b-instant",  # Faster model for translation
+                model="llama-3.2-3b-preview",  # Updated faster model
                 messages=[
                     {
                         "role": "system",
