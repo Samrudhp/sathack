@@ -149,6 +149,32 @@ class Database:
             await cls.db.fraud_checks.create_index([("user_id", ASCENDING)])
             await cls.db.fraud_checks.create_index([("is_suspicious", ASCENDING)])
             
+            # Recycler Credentials
+            try:
+                await cls.db.recycler_credentials.create_index([("username", ASCENDING)], unique=True)
+            except Exception as e:
+                if "duplicate key" not in str(e).lower():
+                    logger.warning(f"Index creation warning for recycler_credentials.username: {e}")
+            
+            await cls.db.recycler_credentials.create_index([("recycler_id", ASCENDING)])
+            
+            # Redemption Codes
+            try:
+                await cls.db.redemption_codes.create_index([("code", ASCENDING)], unique=True)
+            except Exception as e:
+                if "duplicate key" not in str(e).lower():
+                    logger.warning(f"Index creation warning for redemption_codes.code: {e}")
+            
+            await cls.db.redemption_codes.create_index([("user_id", ASCENDING)])
+            await cls.db.redemption_codes.create_index([("recycler_id", ASCENDING)])
+            await cls.db.redemption_codes.create_index([("is_redeemed", ASCENDING)])
+            await cls.db.redemption_codes.create_index([("expires_at", ASCENDING)])
+            
+            # Waste Deliveries
+            await cls.db.waste_deliveries.create_index([("user_id", ASCENDING)])
+            await cls.db.waste_deliveries.create_index([("recycler_id", ASCENDING)])
+            await cls.db.waste_deliveries.create_index([("delivered_at", DESCENDING)])
+            
             logger.info("Created all MongoDB indexes")
             
         except Exception as e:
@@ -219,3 +245,15 @@ def get_heatmap_tiles_collection():
 
 def get_fraud_checks_collection():
     return db.db.fraud_checks
+
+
+def get_redemption_codes_collection():
+    return db.db.redemption_codes
+
+
+def get_waste_deliveries_collection():
+    return db.db.waste_deliveries
+
+
+def get_recycler_credentials_collection():
+    return db.db.recycler_credentials

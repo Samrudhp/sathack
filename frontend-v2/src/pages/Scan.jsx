@@ -4,10 +4,12 @@ import { useUserStore, useScanStore } from '../store';
 import { useGeolocation } from '../hooks';
 import { scanImage } from '../api';
 
+const HARDCODED_USER_ID = '673fc7f4f1867ab46b0a8c01';
+
 export default function Scan() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
-  const { user, language } = useUserStore();
+  const { language } = useUserStore();
   const { setScan } = useScanStore();
   const { latitude, longitude, loading: locationLoading } = useGeolocation();
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,7 @@ export default function Scan() {
     if (!file) return;
 
     console.log('File selected:', file.name, file.type, file.size);
-    console.log('User ID:', user?.id);
+    console.log('User ID:', HARDCODED_USER_ID);
     console.log('Location:', { latitude, longitude, loading: locationLoading });
 
     if (locationLoading) {
@@ -31,24 +33,19 @@ export default function Scan() {
       return;
     }
 
-    if (!user || !user.id) {
-      setError(language === 'en' ? 'User not found. Please refresh.' : 'उपयोगकर्ता नहीं मिला। कृपया रीफ्रेश करें।');
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
       console.log('Calling scanImage API with:', {
         fileName: file.name,
-        userId: user.id,
+        userId: HARDCODED_USER_ID,
         latitude,
         longitude,
         language
       });
 
-      const result = await scanImage(file, user.id, latitude, longitude, language);
+      const result = await scanImage(file, HARDCODED_USER_ID, latitude, longitude, language);
       
       console.log('Scan result:', result);
       

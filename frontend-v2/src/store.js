@@ -6,14 +6,16 @@ export const useUserStore = create(
   persist(
     (set) => ({
       user: { 
-        id: '673fc7f4f1867ab46b0a8c01',  // Valid ObjectId from seeded data
+        id: '673fc7f4f1867ab46b0a8c01',
         name: 'Test User',
         phone: '+919876543210'
       },
+      userId: '673fc7f4f1867ab46b0a8c01',  // Hardcoded single test user
       language: 'en',
-      setUser: (user) => set({ user }),
+      setUser: (user) => set({ user, userId: user?.id || '673fc7f4f1867ab46b0a8c01' }),
+      setUserId: (userId) => set({ userId }),
       setLanguage: (language) => set({ language }),
-      logout: () => set({ user: null }),
+      logout: () => set({ user: null, userId: null }),
     }),
     { name: 'user-storage' }
   )

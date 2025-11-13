@@ -10,6 +10,7 @@ import os
 from motor.motor_asyncio import AsyncIOMotorClient
 import numpy as np
 from datetime import datetime
+from bson import ObjectId
 
 # Add parent directory to path to import app modules
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -173,19 +174,36 @@ async def seed_sample_users():
     
     print("\n👤 Creating sample user...")
     
+    # Define user_id as ObjectId
+    user_object_id = ObjectId("673fc7f4f1867ab46b0a8c01")
+    
+    # Delete existing user if present
+    await db.users.delete_one({"_id": user_object_id})
+    await db.wallets.delete_many({"user_id": user_object_id})
+    
     users = [
         {
-            "user_id": "673fc7f4f1867ab46b0a8c01",  # Match frontend store
+            "_id": user_object_id,  # Use _id with ObjectId
+            "username": "testuser",
+            "password": "test123",
             "name": "Test User",
             "phone": "+919876543210",
             "email": "test@renova.in",
-            "language_preference": "en",
+            "language": "en",
             "location": {
                 "type": "Point",
                 "coordinates": [76.3695, 30.3554]  # Patiala, Punjab
             },
-            "address": "Patiala, Punjab",
-            "created_at": datetime.utcnow()
+            "preferred_recyclers": [],
+            # Stats tracking fields
+            "total_scans": 0,
+            "tokens_earned": 0,
+            "tokens_balance": 0,
+            "total_co2_saved_kg": 0.0,
+            "total_water_saved_liters": 0.0,
+            "total_landfill_saved_kg": 0.0,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
     ]
     
@@ -195,7 +213,7 @@ async def seed_sample_users():
     # Create wallet
     wallets = [
         {
-            "user_id": "673fc7f4f1867ab46b0a8c01",
+            "user_id": user_object_id,  # Use ObjectId reference
             "balance": 0,
             "total_earned": 0,
             "total_redeemed": 0,
@@ -263,10 +281,33 @@ async def seed_sample_recyclers():
         }
     ]
     
-    await db.recyclers.insert_many(recyclers)
+    result = await db.recyclers.insert_many(recyclers)
+    recycler_ids = result.inserted_ids
     print(f"✅ Created {len(recyclers)} sample recyclers")
     print(f"   📍 Punjab EcoRecycle Hub: ~2 km away (NEAREST)")
     print(f"   📍 GreenTech E-Waste: ~5 km away")
+    
+    # Create recycler credentials
+    print("\n🔐 Creating recycler credentials...")
+    credentials = [
+        {
+            "recycler_id": recycler_ids[0],
+            "username": "recycler1",
+            "password": "password123",  # Plain text for demo (would hash in production)
+            "created_at": datetime.utcnow()
+        },
+        {
+            "recycler_id": recycler_ids[1],
+            "username": "recycler2",
+            "password": "password123",
+            "created_at": datetime.utcnow()
+        }
+    ]
+    
+    await db.recycler_credentials.insert_many(credentials)
+    print(f"✅ Created {len(credentials)} recycler credentials")
+    print(f"   👤 Username: recycler1, Password: password123")
+    print(f"   👤 Username: recycler2, Password: password123")
     
     client.close()
 
@@ -289,6 +330,9 @@ async def main():
     print("\n♻️  Sample recyclers near Patiala:")
     print("  - Punjab EcoRecycle Hub: ~2 km (All materials)")
     print("  - GreenTech E-Waste: ~5 km (E-waste specialist)")
+    print("\n🔐 Recycler Login Credentials:")
+    print("  - Username: recycler1, Password: password123")
+    print("  - Username: recycler2, Password: password123")
     print("\n💡 You can now test API endpoints with these IDs")
 
 

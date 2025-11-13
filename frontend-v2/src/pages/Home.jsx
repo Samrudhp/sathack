@@ -99,6 +99,20 @@ export default function Home() {
               </p>
             </div>
           </Link>
+
+          <Link to="/profile" className="card hover:scale-105 transition-transform">
+            <div className="text-center">
+              <div className="text-6xl mb-4">👤</div>
+              <h3 className="text-xl font-bold text-forest mb-2">
+                {language === 'en' ? 'My Profile' : 'मेरी प्रोफ़ाइल'}
+              </h3>
+              <p className="text-olive-dark">
+                {language === 'en' 
+                  ? 'View stats and redeem codes' 
+                  : 'आंकड़े देखें और कोड रिडीम करें'}
+              </p>
+            </div>
+          </Link>
         </div>
 
         {/* Info */}

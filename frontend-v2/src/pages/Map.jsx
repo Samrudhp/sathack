@@ -28,21 +28,37 @@ export default function Map() {
   useEffect(() => {
     // Check if recyclers passed from Result page
     if (location.state?.recyclers) {
+      console.log('Using recyclers from navigation state:', location.state.recyclers);
       setRecyclers(location.state.recyclers);
     } else if (latitude && longitude) {
+      console.log('Loading recyclers for location:', latitude, longitude);
       loadRecyclers();
     }
   }, [latitude, longitude, location.state]);
 
   const loadRecyclers = async () => {
+    if (!latitude || !longitude) {
+      console.log('No location available, skipping recycler load');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
+    console.log('Fetching recyclers near:', { latitude, longitude });
+    
     try {
+      // Use "Plastic" as default material when navigating from home
       const material = currentScan?.material || 'Plastic';
-      const data = await getRecyclersNearby(latitude, longitude, material, 1.0);
+      const weight = currentScan?.weight_kg || 1.0;
+      
+      console.log('Calling getRecyclersNearby with:', { latitude, longitude, material, weight });
+      const data = await getRecyclersNearby(latitude, longitude, material, weight);
+      console.log('Received recyclers:', data);
+      
       setRecyclers(data.recyclers || []);
     } catch (err) {
       console.error('Recycler load error:', err);
+      console.error('Error details:', err.response?.data);
       setError(language === 'en' ? 'Failed to load recyclers' : 'रीसाइकलर लोड विफल रहा');
     } finally {
       setLoading(false);

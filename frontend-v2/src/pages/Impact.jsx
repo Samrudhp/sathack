@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store';
-import { getImpactStats } from '../api';
+
+const HARDCODED_USER_ID = '673fc7f4f1867ab46b0a8c01';
 
 export default function Impact() {
   const navigate = useNavigate();
-  const { user, language } = useUserStore();
+  const { language } = useUserStore();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,7 +19,9 @@ export default function Impact() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getImpactStats(user.id);
+      const response = await fetch(`http://localhost:8000/api/user/stats/${HARDCODED_USER_ID}`);
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      const data = await response.json();
       setStats(data);
     } catch (err) {
       console.error('Impact load error:', err);
@@ -62,15 +65,15 @@ export default function Impact() {
               </h2>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <p className="text-4xl font-bold">{stats.total_co2_saved_kg?.toFixed(1) || '0.0'}</p>
+                  <p className="text-4xl font-bold">{(stats.total_co2_saved_kg || 0).toFixed(1)}</p>
                   <p className="text-sm opacity-90 mt-1">kg CO₂</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-bold">{stats.total_water_saved_liters?.toFixed(0) || '0'}</p>
+                  <p className="text-4xl font-bold">{(stats.total_water_saved_liters || 0).toFixed(0)}</p>
                   <p className="text-sm opacity-90 mt-1">{language === 'en' ? 'Liters Water' : 'लीटर पानी'}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-4xl font-bold">{stats.total_landfill_saved_kg?.toFixed(1) || '0.0'}</p>
+                  <p className="text-4xl font-bold">{(stats.total_landfill_saved_kg || 0).toFixed(1)}</p>
                   <p className="text-sm opacity-90 mt-1">{language === 'en' ? 'kg Landfill' : 'kg लैंडफिल'}</p>
                 </div>
               </div>
@@ -83,45 +86,32 @@ export default function Impact() {
                 <p className="text-4xl font-bold text-forest">{stats.total_scans || 0}</p>
               </div>
               <div className="card bg-olive-light">
-                <p className="text-olive-dark mb-1">{language === 'en' ? 'Tokens Earned' : 'टोकन अर्जित'}</p>
-                <p className="text-4xl font-bold text-forest">{stats.total_tokens_earned || 0}</p>
+                <p className="text-olive-dark mb-1">{language === 'en' ? 'Tokens Balance' : 'टोकन शेष'}</p>
+                <p className="text-4xl font-bold text-forest">{stats.tokens_balance || 0}</p>
               </div>
             </div>
 
-            {/* Material Breakdown */}
-            {stats.material_breakdown && Object.keys(stats.material_breakdown).length > 0 && (
-              <div className="card mb-6">
-                <h3 className="text-xl font-bold text-forest mb-4">
-                  {language === 'en' ? 'Materials Recycled' : 'पुनर्नवीनीकरण सामग्री'}
-                </h3>
-                <div className="space-y-2">
-                  {Object.entries(stats.material_breakdown).map(([material, count]) => (
-                    <div key={material} className="flex justify-between items-center p-3 bg-beige rounded-lg">
-                      <span className="font-semibold text-forest">{material}</span>
-                      <span className="text-olive-dark">{count} {language === 'en' ? 'items' : 'वस्तुएं'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Equivalent Impact */}
-            <div className="card bg-forest-light text-white">
+            <div className="card bg-forest text-white">
               <h3 className="text-xl font-bold mb-4">
                 {language === 'en' ? 'What This Means' : 'इसका क्या मतलब है'}
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-3 text-lg">
                 <li>🌳 {language === 'en' 
                   ? `Equivalent to planting ${Math.floor((stats.total_co2_saved_kg || 0) / 20)} trees` 
                   : `${Math.floor((stats.total_co2_saved_kg || 0) / 20)} पेड़ लगाने के बराबर`}
                 </li>
                 <li>💧 {language === 'en' 
-                  ? `Enough water for ${Math.floor((stats.total_water_saved_liters || 0) / 100)} days` 
-                  : `${Math.floor((stats.total_water_saved_liters || 0) / 100)} दिनों के लिए पर्याप्त पानी`}
+                  ? `Saved ${Math.floor((stats.total_water_saved_liters || 0))} liters of water` 
+                  : `${Math.floor((stats.total_water_saved_liters || 0))} लीटर पानी बचाया`}
                 </li>
                 <li>🗑️ {language === 'en' 
-                  ? `Prevented ${(stats.total_landfill_saved_kg || 0).toFixed(0)}kg from landfills` 
-                  : `${(stats.total_landfill_saved_kg || 0).toFixed(0)}kg को लैंडफिल से रोका`}
+                  ? `Prevented ${(stats.total_landfill_saved_kg || 0).toFixed(1)} kg from landfills` 
+                  : `${(stats.total_landfill_saved_kg || 0).toFixed(1)} kg को लैंडफिल से रोका`}
+                </li>
+                <li>🎁 {language === 'en'
+                  ? `Earned ${stats.tokens_earned || 0} tokens!`
+                  : `${stats.tokens_earned || 0} टोकन अर्जित किए!`}
                 </li>
               </ul>
             </div>

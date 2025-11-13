@@ -7,21 +7,24 @@ import Voice from './pages/Voice';
 import Result from './pages/Result';
 import Map from './pages/Map';
 import Impact from './pages/Impact';
+import Profile from './pages/Profile';
 
 function App() {
-  const { user, setUser } = useUserStore();
+  const { user, setUser, setUserId } = useUserStore();
 
   useEffect(() => {
     // Ensure user is initialized (for testing without auth)
     if (!user || !user.id) {
       console.log('Initializing mock user...');
+      const mockUserId = '673fc7f4f1867ab46b0a8c01';  // Valid ObjectId from backend seeded data
       setUser({
-        id: '673fc7f4f1867ab46b0a8c01',  // Valid ObjectId from backend seeded data
+        id: mockUserId,
         name: 'Test User',
         phone: '+919876543210'
       });
+      setUserId(mockUserId);
     }
-  }, [user, setUser]);
+  }, [user, setUser, setUserId]);
 
   return (
     <Router>
@@ -32,6 +35,7 @@ function App() {
         <Route path="/result" element={<Result />} />
         <Route path="/map" element={<Map />} />
         <Route path="/impact" element={<Impact />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </Router>
   );

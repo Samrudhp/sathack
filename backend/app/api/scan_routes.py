@@ -18,7 +18,8 @@ from app.services.database import (
     get_pending_items_collection,
     get_user_behavior_collection,
     get_heatmap_tiles_collection,
-    get_recyclers_collection
+    get_recyclers_collection,
+    get_users_collection
 )
 from app.models.scan_models import PendingItemModel
 from bson import ObjectId
@@ -208,6 +209,16 @@ async def scan_image(
             pending_item.model_dump(by_alias=True, exclude=["id"])
         )
         scan_id = str(result.inserted_id)
+        
+        # Update user stats - increment total_scans
+        users_collection = get_users_collection()
+        await users_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$inc": {"total_scans": 1},
+                "$set": {"updated_at": datetime.utcnow()}
+            }
+        )
         
         # Update heatmap
         zoom, x, y = osm_service.lat_lon_to_tile(latitude, longitude, zoom=15)
