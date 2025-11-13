@@ -1,0 +1,114 @@
+{
+  "app_name": "ReNova",
+  "tagline": "Reimagining Waste as Future",
+  "enter_app": "Enter App",
+  "scan_now": "Scan Item",
+  "voice_query": "Voice Query",
+  "my_impact": "My Impact",
+  "token_balance": "Token Balance",
+  "recent_scans": "Recent Scans",
+  "home": "Home",
+  "scan": "Scan",
+  "voice_nav": "Voice",
+  "impact_nav": "Impact",
+  "tokens": "Tokens",
+  "community_nav": "Community",
+  "settings_nav": "Settings",
+  "map": "Map",
+  "pickup_nav": "Schedule Pickup",
+  "result": "Result",
+  
+  "disposal_instruction": "Disposal Instructions",
+  "recycler_matches": "Nearby Recyclers",
+  "environmental_impact": "Environmental Impact",
+  "tokens_earned": "Tokens Earned",
+  "hazard_warning": "⚠️ Hazardous Material Detected",
+  "hazard_instructions": "Special handling required. Follow safety protocols.",
+  
+  "material": "Material",
+  "cleanliness": "Cleanliness Score",
+  "distance": "Distance",
+  "eta": "ETA",
+  "price": "Price",
+  "view_route": "View Route",
+  "schedule": "Schedule Pickup",
+  
+  "impact": {
+    "co2": "CO₂ Saved",
+    "water": "Water Saved",
+    "landfill": "Landfill Diverted",
+    "weekly": "Weekly Stats",
+    "monthly": "Monthly Stats",
+    "category": "By Category",
+    "top_material": "Top Recycled Material"
+  },
+  
+  "token": {
+    "balance": "Balance",
+    "earn_history": "Earn History",
+    "redeem": "Redeem",
+    "code": "Token Code"
+  },
+  
+  "community": {
+    "leaderboard": "Leaderboard",
+    "your_rank": "Your Rank",
+    "top_recyclers": "Top Recyclers",
+    "building_impact": "Building Impact"
+  },
+  
+  "pickup": {
+    "select_date": "Select Date",
+    "select_time": "Select Time Slot",
+    "address": "Pickup Address",
+    "notes": "Special Instructions",
+    "confirm": "Confirm Pickup"
+  },
+  
+  "recycler": {
+    "login": "Recycler Login",
+    "dashboard": "Dashboard",
+    "pending_items": "Pending Items",
+    "view_item": "View Item",
+    "submit": "Submit",
+    "weight": "Weight (kg)",
+    "token_issued": "Token Issued",
+    "give_token": "Give this token to the user"
+  },
+  
+  "camera": {
+    "capture": "Capture Image",
+    "retake": "Retake",
+    "use_photo": "Use Photo",
+    "scanning": "Analyzing..."
+  },
+  
+  "voice": {
+    "press_hold": "Press & Hold to Record",
+    "recording": "Recording...",
+    "processing": "Processing...",
+    "speak_now": "Speak now"
+  },
+  
+  "settings": {
+    "profile": "Profile",
+    "language": "Language",
+    "address": "Address",
+    "notifications": "Notifications",
+    "logout": "Logout"
+  },
+  
+  "error": {
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Check your connection.",
+    "upload": "Failed to upload. Please try again.",
+    "location": "Location access denied."
+  },
+  
+  "success": {
+    "scan": "Scan completed successfully!",
+    "pickup": "Pickup scheduled successfully!",
+    "token": "Token redeemed successfully!",
+    "submit": "Submission successful!"
+  }
+}
