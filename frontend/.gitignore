@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Package files
+package.json
+package-lock.json
+
+# Config files
+tailwind.config.js
+src/index.css
