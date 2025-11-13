@@ -110,8 +110,14 @@ class VisionService:
             if self.model is None:
                 await self.initialize()
             
-            # Process text
-            inputs = self.processor(text=[text], return_tensors="pt", padding=True)
+            # Process text with truncation to respect CLIP's 77 token limit
+            inputs = self.processor(
+                text=[text], 
+                return_tensors="pt", 
+                padding=True,
+                truncation=True,
+                max_length=77
+            )
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
             
             # Get text embedding

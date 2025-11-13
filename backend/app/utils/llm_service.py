@@ -169,6 +169,8 @@ class LLMService:
     ) -> Dict:
         """Parse LLM response into structured format"""
         
+        logger.info(f"Parsing LLM response (length: {len(llm_text)} chars)")
+        
         # Extract sections (basic parsing)
         sections = {
             "disposal_instruction": "",
@@ -187,29 +189,51 @@ class LLMService:
         # Simple section extraction
         lines = llm_text.split('\n')
         current_section = None
+        section_content = []
         
         for line in lines:
-            line_lower = line.lower()
+            line_lower = line.lower().strip()
             
-            if 'disposal' in line_lower and 'instruction' in line_lower:
+            # Check for section headers (look for numbered items or bold markers)
+            if '1.' in line or '**disposal' in line_lower or 'disposal instruction' in line_lower:
+                if current_section and section_content:
+                    sections[current_section] = '\n'.join(section_content).strip()
                 current_section = 'disposal_instruction'
-            elif 'hazard' in line_lower:
+                section_content = []
+            elif '2.' in line or '**hazard' in line_lower or 'hazard note' in line_lower:
+                if current_section and section_content:
+                    sections[current_section] = '\n'.join(section_content).strip()
                 current_section = 'hazard_notes'
-            elif 'cleaning' in line_lower:
+                section_content = []
+            elif '3.' in line or '**cleaning' in line_lower or 'cleaning recommend' in line_lower:
+                if current_section and section_content:
+                    sections[current_section] = '\n'.join(section_content).strip()
                 current_section = 'cleaning_recommendation'
-            elif 'recycler' in line_lower:
+                section_content = []
+            elif '4.' in line or '**recycler' in line_lower or 'recycler rank' in line_lower:
+                if current_section and section_content:
+                    sections[current_section] = '\n'.join(section_content).strip()
                 current_section = 'recycler_ranking'
-            elif 'route' in line_lower:
+                section_content = []
+            elif '5.' in line or '**route' in line_lower or 'route summary' in line_lower:
+                if current_section and section_content:
+                    sections[current_section] = '\n'.join(section_content).strip()
                 current_section = 'route_summary'
-            elif 'pickup' in line_lower:
-                current_section = 'pickup_suggestions'
-            elif 'citation' in line_lower:
-                current_section = 'citations'
-            elif current_section and line.strip():
-                if isinstance(sections[current_section], list):
-                    sections[current_section].append(line.strip())
-                else:
-                    sections[current_section] += line.strip() + " "
+                section_content = []
+            elif current_section and line.strip() and not line.startswith('#'):
+                # Add content to current section (skip header lines)
+                cleaned_line = line.replace('**', '').strip()
+                if cleaned_line and not cleaned_line.endswith(':'):
+                    section_content.append(cleaned_line)
+        
+        # Save last section
+        if current_section and section_content:
+            sections[current_section] = '\n'.join(section_content).strip()
+        
+        # Fallback: if disposal_instruction is empty, use the entire response
+        if not sections['disposal_instruction'].strip():
+            logger.warning("Could not parse disposal_instruction from LLM response, using full text")
+            sections['disposal_instruction'] = llm_text.strip()
         
         # Calculate impact (use formulas)
         from app.impact.impact_service import impact_service

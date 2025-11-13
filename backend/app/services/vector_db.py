@@ -8,6 +8,14 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Import FAISS
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+    logger.warning("FAISS not available - vector search will be disabled")
+
 
 class VectorDB:
     """Abstract vector database interface"""
@@ -46,7 +54,8 @@ class FAISSVectorDB(VectorDB):
     async def initialize(self):
         """Initialize FAISS index"""
         try:
-            import faiss
+            if not FAISS_AVAILABLE:
+                raise ImportError("FAISS library not installed")
             
             # Create FAISS index (L2 distance)
             self.index = faiss.IndexFlatL2(self.dimension)

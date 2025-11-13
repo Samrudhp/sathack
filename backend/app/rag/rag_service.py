@@ -32,12 +32,82 @@ class RAGService:
             await global_rag_vector_db.initialize()
             await personal_rag_vector_db.initialize()
             
+            # Load existing embeddings from MongoDB into FAISS
+            await self._load_existing_embeddings()
+            
             self.initialized = True
             logger.info("RAG service initialized")
             
         except Exception as e:
             logger.error(f"Failed to initialize RAG service: {e}")
             raise
+    
+    async def _load_existing_embeddings(self):
+        """Load existing embeddings from MongoDB into FAISS"""
+        try:
+            # Load global documents
+            global_collection = get_rag_global_collection()
+            global_docs = await global_collection.find({"embedding": {"$exists": True, "$ne": None}}).to_list(length=None)
+            
+            if global_docs:
+                doc_ids = []
+                embeddings = []
+                metadata = []
+                
+                for doc in global_docs:
+                    doc_id = str(doc["_id"])
+                    embedding = doc.get("embedding")
+                    
+                    if embedding and len(embedding) == 512:
+                        doc_ids.append(doc_id)
+                        embeddings.append(embedding)
+                        metadata.append({
+                            "title": doc.get("title", doc.get("content", "")[:50]),
+                            "category": doc.get("category", "")
+                        })
+                
+                if embeddings:
+                    embeddings_array = np.array(embeddings, dtype=np.float32)
+                    await global_rag_vector_db.insert(
+                        ids=doc_ids,
+                        embeddings=embeddings_array,
+                        metadata=metadata
+                    )
+                    logger.info(f"Loaded {len(embeddings)} global documents into vector DB")
+            
+            # Load personal documents
+            personal_collection = get_rag_personal_collection()
+            personal_docs = await personal_collection.find({"embedding": {"$exists": True, "$ne": None}}).to_list(length=None)
+            
+            if personal_docs:
+                doc_ids = []
+                embeddings = []
+                metadata = []
+                
+                for doc in personal_docs:
+                    doc_id = str(doc["_id"])
+                    embedding = doc.get("embedding")
+                    
+                    if embedding and len(embedding) == 512:
+                        doc_ids.append(doc_id)
+                        embeddings.append(embedding)
+                        metadata.append({
+                            "user_id": str(doc.get("user_id", "")),
+                            "doc_type": doc.get("doc_type", "")
+                        })
+                
+                if embeddings:
+                    embeddings_array = np.array(embeddings, dtype=np.float32)
+                    await personal_rag_vector_db.insert(
+                        ids=doc_ids,
+                        embeddings=embeddings_array,
+                        metadata=metadata
+                    )
+                    logger.info(f"Loaded {len(embeddings)} personal documents into vector DB")
+                    
+        except Exception as e:
+            logger.error(f"Failed to load existing embeddings: {e}")
+            # Don't raise - allow service to continue with empty vector DB
     
     async def add_global_document(
         self,

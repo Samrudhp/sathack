@@ -5,9 +5,14 @@ Populates global RAG collection with waste disposal knowledge
 """
 
 import asyncio
+import sys
+import os
 from motor.motor_asyncio import AsyncIOMotorClient
 import numpy as np
 from datetime import datetime
+
+# Add parent directory to path to import app modules
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # MongoDB connection
 MONGODB_URL = "mongodb://localhost:27017"
@@ -105,14 +110,22 @@ async def seed_global_rag():
     # Clear existing documents (optional - comment out to preserve existing)
     await collection.delete_many({})
     
+    # Initialize CLIP service to generate actual embeddings
+    print("🔧 Initializing CLIP service for embeddings...")
+    from app.vision.clip_service import vision_service
+    await vision_service.initialize()
+    
     # Generate embeddings (512-dim for CLIP ViT-B/32 compatibility)
-    # In production, these would be actual CLIP embeddings
     embeddings_list = []
     doc_ids = []
     
-    for doc in GLOBAL_RAG_SAMPLES:
-        # Generate random embedding
-        embedding = np.random.randn(512).astype(np.float32)
+    for i, doc in enumerate(GLOBAL_RAG_SAMPLES):
+        # Generate ACTUAL CLIP text embedding
+        # Truncate content to avoid CLIP's 77 token limit (~300 chars is safe)
+        text_for_embedding = doc['content'][:250]
+        doc_preview = doc['content'][:50].split('.')[0]  # Get first sentence
+        print(f"  Encoding document {i+1}/{len(GLOBAL_RAG_SAMPLES)}: {doc_preview}...")
+        embedding = await vision_service.encode_text(text_for_embedding)
         doc["embedding"] = embedding.tolist()
         doc["created_at"] = datetime.utcnow()
         embeddings_list.append(embedding)
@@ -223,6 +236,8 @@ async def seed_sample_recyclers():
             "rating": 4.7,
             "total_collections": 320,
             "operating_hours": "9 AM - 7 PM (Mon-Sat)",
+            "is_active": True,
+            "catchment_wards": ["Urban Estate", "Phase 2", "Model Town"],
             "created_at": datetime.utcnow()
         },
         {
@@ -242,6 +257,8 @@ async def seed_sample_recyclers():
             "rating": 4.9,
             "total_collections": 180,
             "operating_hours": "10 AM - 6 PM (Mon-Sat)",
+            "is_active": True,
+            "catchment_wards": ["Industrial Area", "Tripuri"],
             "created_at": datetime.utcnow()
         }
     ]

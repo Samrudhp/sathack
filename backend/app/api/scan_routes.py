@@ -255,10 +255,7 @@ async def scan_image(
                     "rating": recycler_doc.get("rating"),
                     "operating_hours": recycler_doc.get("operating_hours"),
                     "materials_accepted": recycler_doc.get("materials_accepted", []),
-                    "location": {
-                        "type": r.location.type,
-                        "coordinates": r.location.coordinates
-                    },
+                    "location": r.location,  # Already a dict with type and coordinates
                     "route_summary": r.route_summary
                 })
         
@@ -297,7 +294,7 @@ async def voice_input(
     language: Optional[str] = Form("en")
 ):
     """
-    Process voice input → Transcribe → Text query
+    Process voice input → Transcribe → RAG Query → LLM Response
     """
     try:
         logger.info(f"Voice input from user {user_id}")
@@ -313,34 +310,10 @@ async def voice_input(
         
         logger.info(f"Transcribed: {text[:100]}... (lang={detected_language})")
         
-        return {
-            "text": text,
-            "language": detected_language,
-            "confidence": transcription["confidence"],
-            "message": "Voice transcribed successfully. You can now use this text for scan or RAG query."
-        }
-        
-    except Exception as e:
-        logger.error(f"Voice input failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/rag_query")
-async def rag_query(
-    user_id: str = Form(...),
-    query: str = Form(...),
-    language: str = Form("en")
-):
-    """
-    Pure RAG query without image scan
-    """
-    try:
-        logger.info(f"RAG query from user {user_id}: {query[:50]}...")
-        
-        # Translate if needed
-        query_en = query
-        if language == "hi":
-            query_en = await llm_service.translate_to_english(query)
+        # Now process the transcribed text through RAG + LLM
+        query_en = text
+        if detected_language == "hi" or language == "hi":
+            query_en = await llm_service.translate_to_english(text)
         
         # Encode query
         v_text = await vision_service.encode_text(query_en)
@@ -353,27 +326,136 @@ async def rag_query(
             personal_top_k=3
         )
         
-        # Format response
-        response_text = "**Global Knowledge:**\n\n"
-        for i, doc in enumerate(global_docs, 1):
-            response_text += f"{i}. {doc['title']}\n{doc['content'][:200]}...\n\n"
+        logger.info(f"Voice RAG: Retrieved {len(global_docs)} global docs, {len(personal_docs)} personal docs")
         
-        if personal_docs:
-            response_text += "\n**Your History:**\n\n"
-            for doc in personal_docs:
-                response_text += f"- {doc['content'][:150]}...\n"
+        # Use LLM for reasoning
+        llm_response = await llm_service.reason_about_waste(
+            query=query_en or "How to dispose this waste?",
+            vision_labels={"material": "General", "confidence": 1.0},
+            osm_context={},
+            global_docs=global_docs,
+            personal_docs=personal_docs,
+            recycler_info=[],
+            material="General",
+            weight_estimate=1.0
+        )
         
-        # Translate if needed
-        if language == "hi":
-            response_text = await llm_service.translate_to_hindi(response_text)
+        # Extract response
+        output_text = llm_response.get("disposal_instruction", "")
+        
+        # Translate response if needed
+        if language == "hi" and output_text:
+            output_text = await llm_service.translate_to_hindi(output_text)
+        
+        logger.info(f"Voice query processed with LLM response")
+        
+        # Extract material from LLM response or use default
+        material = llm_response.get("material", "General Waste")
         
         return {
-            "response": response_text,
+            "transcribed_text": text,
+            "language": detected_language,
+            "confidence": transcription.get("confidence", 1.0),
+            "material": material,
+            "cleanliness_score": 100,  # Voice queries don't have cleanliness assessment
+            "hazard_class": llm_response.get("hazard_class"),
+            "response": output_text,
+            "disposal_instruction": output_text,
+            "hazard_notes": llm_response.get("hazard_notes"),
+            "cleaning_recommendation": llm_response.get("cleaning_recommendation"),
+            "estimated_credits": llm_response.get("estimated_credits", 0),
+            "environmental_impact": {
+                "co2_saved_kg": llm_response.get("co2_saved_kg", 0),
+                "water_saved_liters": llm_response.get("water_saved_liters", 0),
+                "landfill_saved_kg": llm_response.get("landfill_saved_kg", 0)
+            },
+            "citations": llm_response.get("citations", []),
             "global_docs_count": len(global_docs),
             "personal_docs_count": len(personal_docs),
+            "retrieved_docs": [
+                {"title": doc.get("title", ""), "content": doc.get("content", "")[:200] + "..."}
+                for doc in global_docs[:3]
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Voice input failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/rag_query")
+async def rag_query(
+    user_id: str = Form(...),
+    query: str = Form(...),
+    language: str = Form("en")
+):
+    """
+    Pure RAG query without image scan - with full LLM reasoning
+    """
+    try:
+        logger.info(f"RAG query from user {user_id}: {query[:50]}...")
+        
+        # Translate if needed
+        query_en = query
+        if language == "hi":
+            query_en = await llm_service.translate_to_english(query)
+            logger.info(f"Translated query: {query_en}")
+        
+        # Encode query
+        v_text = await vision_service.encode_text(query_en)
+        
+        # Retrieve from RAG
+        global_docs, personal_docs = await rag_service.dual_retrieve(
+            user_id=user_id,
+            query_embedding=v_text,
+            global_top_k=5,
+            personal_top_k=3
+        )
+        
+        logger.info(f"Retrieved {len(global_docs)} global docs, {len(personal_docs)} personal docs")
+        
+        # Use LLM for reasoning
+        llm_response = await llm_service.reason_about_waste(
+            query=query_en or "How to dispose this waste?",
+            vision_labels={"material": "General", "confidence": 1.0},
+            osm_context={},
+            global_docs=global_docs,
+            personal_docs=personal_docs,
+            recycler_info=[],
+            material="General",
+            weight_estimate=1.0
+        )
+        
+        # Extract response
+        output_text = llm_response.get("disposal_instruction", "")
+        
+        # Translate response if needed
+        if language == "hi" and output_text:
+            output_text = await llm_service.translate_to_hindi(output_text)
+        
+        logger.info(f"LLM response generated")
+        
+        return {
+            "response": output_text,
+            "disposal_instruction": output_text,
+            "hazard_notes": llm_response.get("hazard_notes"),
+            "cleaning_recommendation": llm_response.get("cleaning_recommendation"),
+            "estimated_credits": llm_response.get("estimated_credits", 0),
+            "environmental_impact": {
+                "co2_saved_kg": llm_response.get("co2_saved_kg", 0),
+                "water_saved_liters": llm_response.get("water_saved_liters", 0),
+                "landfill_saved_kg": llm_response.get("landfill_saved_kg", 0)
+            },
+            "citations": llm_response.get("citations", []),
+            "global_docs_count": len(global_docs),
+            "personal_docs_count": len(personal_docs),
+            "retrieved_docs": [
+                {"title": doc.get("title", ""), "content": doc.get("content", "")[:200] + "..."}
+                for doc in global_docs[:3]
+            ],
             "language": language
         }
         
     except Exception as e:
-        logger.error(f"RAG query failed: {e}")
+        logger.error(f"RAG query failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

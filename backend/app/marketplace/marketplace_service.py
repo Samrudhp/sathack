@@ -35,24 +35,52 @@ class MarketplaceService:
             List of RecyclerScore sorted by score (descending)
         """
         try:
+            logger.info(f"Ranking recyclers for ({user_lat}, {user_lon}), material={material}, weight={weight_kg}kg")
+            
             # Get nearby recyclers from MongoDB
             recyclers_collection = get_recyclers_collection()
             
-            # Find recyclers within 20km
-            recyclers_cursor = recyclers_collection.find({
-                "is_active": True,
-                "location": {
-                    "$near": {
-                        "$geometry": {
-                            "type": "Point",
-                            "coordinates": [user_lon, user_lat]
-                        },
-                        "$maxDistance": 20000  # 20km
+            # Try geospatial query first
+            try:
+                # Find recyclers within 20km using $near
+                recyclers_cursor = recyclers_collection.find({
+                    "is_active": True,
+                    "location": {
+                        "$near": {
+                            "$geometry": {
+                                "type": "Point",
+                                "coordinates": [user_lon, user_lat]
+                            },
+                            "$maxDistance": 20000  # 20km
+                        }
                     }
-                }
-            })
-            
-            recyclers = await recyclers_cursor.to_list(length=50)
+                })
+                
+                recyclers = await recyclers_cursor.to_list(length=50)
+                logger.info(f"Geospatial query found {len(recyclers)} recyclers")
+                
+            except Exception as geo_error:
+                # Fallback: Get all active recyclers and filter by distance manually
+                logger.warning(f"Geospatial query failed: {geo_error}. Using fallback method.")
+                
+                recyclers_cursor = recyclers_collection.find({"is_active": True})
+                all_recyclers = await recyclers_cursor.to_list(length=100)
+                
+                logger.info(f"Found {len(all_recyclers)} active recyclers in database")
+                
+                # Filter by distance manually
+                recyclers = []
+                for rec in all_recyclers:
+                    if "location" in rec and "coordinates" in rec["location"]:
+                        rec_lon, rec_lat = rec["location"]["coordinates"]
+                        # Simple distance check (approximate)
+                        distance_km = self._haversine_distance(
+                            user_lat, user_lon, rec_lat, rec_lon
+                        )
+                        if distance_km <= 20:
+                            recyclers.append(rec)
+                
+                logger.info(f"After distance filter: {len(recyclers)} recyclers within 20km")
             
             if not recyclers:
                 logger.warning("No recyclers found nearby")
@@ -74,14 +102,15 @@ class MarketplaceService:
                 if score_data:
                     scored_recyclers.append(score_data)
             
-            # Sort by total score
-            scored_recyclers.sort(key=lambda x: x.total_score, reverse=True)
+            # Sort by total score (scored_recyclers contains dicts)
+            scored_recyclers.sort(key=lambda x: x["total_score"], reverse=True)
             
             # Convert to RecyclerScore models
             results = []
             for sr in scored_recyclers[:10]:  # Top 10
                 results.append(RecyclerScore(**sr))
             
+            logger.info(f"Ranked {len(results)} recyclers successfully")
             return results
             
         except Exception as e:
@@ -114,19 +143,33 @@ class MarketplaceService:
             material_accept_score = 0.0
             material_rate = 0.0
             
-            for mat in materials_accepted:
-                if mat.get("material") == material and mat.get("accepts", False):
-                    material_accept_score = 1.0
-                    material_rate = mat.get("rate_per_kg", 0.0)
-                    
-                    # Check weight limits
-                    min_weight = mat.get("min_weight_kg", 0)
-                    max_weight = mat.get("max_weight_kg", 1000)
-                    
-                    if weight_kg < min_weight or weight_kg > max_weight:
-                        material_accept_score = 0.5  # Partial score
-                    
-                    break
+            # Handle both formats: list of strings OR list of dicts
+            if materials_accepted:
+                # Check if it's a list of strings (simple format from seed data)
+                if isinstance(materials_accepted[0], str):
+                    # Simple format: ["PET", "HDPE", "Paper"]
+                    if material in materials_accepted:
+                        material_accept_score = 1.0
+                        # Use default rate or price multiplier
+                        from app.config import settings
+                        base_rate = settings.MATERIAL_RATES.get(material, 5.0)
+                        price_multiplier = recycler.get("price_multiplier", 1.0)
+                        material_rate = base_rate * price_multiplier
+                else:
+                    # Complex format: [{"material": "PET", "accepts": true, "rate_per_kg": 12}]
+                    for mat in materials_accepted:
+                        if mat.get("material") == material and mat.get("accepts", False):
+                            material_accept_score = 1.0
+                            material_rate = mat.get("rate_per_kg", 0.0)
+                            
+                            # Check weight limits
+                            min_weight = mat.get("min_weight_kg", 0)
+                            max_weight = mat.get("max_weight_kg", 1000)
+                            
+                            if weight_kg < min_weight or weight_kg > max_weight:
+                                material_accept_score = 0.5  # Partial score
+                            
+                            break
             
             # Skip if doesn't accept material
             if material_accept_score == 0:
@@ -254,7 +297,27 @@ class MarketplaceService:
         except Exception as e:
             logger.error(f"Failed to schedule pickup: {e}")
             raise
+    
+    def _haversine_distance(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+        """
+        Calculate distance between two points using Haversine formula
+        Returns distance in kilometers
+        """
+        import math
+        
+        R = 6371  # Earth radius in km
+        
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        
+        a = (math.sin(dlat / 2) ** 2 + 
+             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * 
+             math.sin(dlon / 2) ** 2)
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        
+        return R * c
 
 
 # Global marketplace service instance
 marketplace_service = MarketplaceService()
+

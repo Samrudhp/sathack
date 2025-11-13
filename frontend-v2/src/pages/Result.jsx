@@ -23,6 +23,7 @@ export default function Result() {
 
   const {
     material,
+    transcribed_text,  // For voice scans
     confidence,
     cleanliness_score,
     hazard_class,
@@ -32,6 +33,9 @@ export default function Result() {
     environmental_impact,
     recycler_ranking,
   } = currentScan;
+  
+  // Check if this is a voice scan
+  const isVoiceScan = !!transcribed_text;
 
   return (
     <div className="min-h-screen bg-beige p-6">
@@ -50,17 +54,30 @@ export default function Result() {
         {/* Material Detection */}
         <div className="card mb-6">
           <h2 className="text-2xl font-bold text-forest mb-3">
-            {material}
+            {material || (language === 'en' ? 'General Waste' : 'सामान्य कचरा')}
           </h2>
+          
+          {/* Show transcribed text for voice scans */}
+          {isVoiceScan && transcribed_text && (
+            <div className="mb-4 p-3 bg-olive-light rounded-lg border-2 border-olive">
+              <p className="text-sm text-olive-dark mb-1">
+                {language === 'en' ? '🎤 Your Question:' : '🎤 आपका प्रश्न:'}
+              </p>
+              <p className="text-forest font-semibold italic">"{transcribed_text}"</p>
+            </div>
+          )}
+          
           <div className="flex gap-4 text-sm">
             <div>
               <span className="text-olive-dark">{language === 'en' ? 'Confidence:' : 'विश्वास:'}</span>
-              <span className="font-bold ml-2">{(confidence * 100).toFixed(1)}%</span>
+              <span className="font-bold ml-2">{confidence ? (confidence * 100).toFixed(1) : '100.0'}%</span>
             </div>
-            <div>
-              <span className="text-olive-dark">{language === 'en' ? 'Cleanliness:' : 'स्वच्छता:'}</span>
-              <span className="font-bold ml-2">{cleanliness_score?.toFixed ? cleanliness_score.toFixed(0) : cleanliness_score}%</span>
-            </div>
+            {!isVoiceScan && (
+              <div>
+                <span className="text-olive-dark">{language === 'en' ? 'Cleanliness:' : 'स्वच्छता:'}</span>
+                <span className="font-bold ml-2">{cleanliness_score?.toFixed ? cleanliness_score.toFixed(0) : cleanliness_score}%</span>
+              </div>
+            )}
             <div>
               <span className="text-olive-dark">{language === 'en' ? 'Hazard:' : 'खतरा:'}</span>
               <span className={`font-bold ml-2 ${hazard_class ? 'text-hazard' : 'text-forest'}`}>
@@ -68,9 +85,7 @@ export default function Result() {
               </span>
             </div>
           </div>
-        </div>
-
-        {/* Hazard Warning */}
+        </div>        {/* Hazard Warning */}
         {hazard_class === 'hazardous' && hazard_notes && (
           <div className="bg-hazard text-white p-4 rounded-lg mb-6">
             <h3 className="font-bold text-lg mb-2">⚠️ {language === 'en' ? 'Hazard Warning' : 'खतरे की चेतावनी'}</h3>
