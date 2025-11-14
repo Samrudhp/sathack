@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     # Groq API (Free LLM)
     GROQ_API_KEY: str
     
+    # Bhashini API (Government of India Translation)
+    BHASHINI_API_KEY: str = ""
+    BHASHINI_USER_ID: str = ""
+    
     # App Config
     APP_NAME: str = "ReNova"
     APP_VERSION: str = "1.0.0"

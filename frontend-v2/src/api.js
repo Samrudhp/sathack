@@ -6,6 +6,26 @@ const api = axios.create({
   baseURL: API_BASE,
 });
 
+// Add response interceptor for better error handling
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response) {
+      // Server responded with error status
+      console.error('API Error Response:', error.response.status, error.response.data);
+      throw new Error(error.response.data?.detail || `API Error: ${error.response.status}`);
+    } else if (error.request) {
+      // Request made but no response
+      console.error('API No Response:', error.request);
+      throw new Error('No response from server. Please check if backend is running.');
+    } else {
+      // Error in request setup
+      console.error('API Request Error:', error.message);
+      throw error;
+    }
+  }
+);
+
 // ============================================
 // SCAN & VOICE APIs
 // ============================================

@@ -34,6 +34,24 @@ async def lifespan(app: FastAPI):
     await global_rag_vector_db.initialize()
     await personal_rag_vector_db.initialize()
     
+    # Initialize AI services
+    from app.voice.whisper_service import voice_service
+    from app.vision.clip_service import vision_service
+    
+    logger.info("Initializing Whisper model for voice transcription...")
+    try:
+        await voice_service.initialize()
+        logger.info("✓ Whisper initialized")
+    except Exception as e:
+        logger.warning(f"Whisper initialization failed: {e}. Voice features may not work.")
+    
+    logger.info("Initializing CLIP model for image classification...")
+    try:
+        await vision_service.initialize()
+        logger.info("✓ CLIP initialized")
+    except Exception as e:
+        logger.warning(f"CLIP initialization failed: {e}. Image scan may not work.")
+    
     logger.info("ReNova backend started successfully")
     
     yield
@@ -63,7 +81,7 @@ app.add_middleware(
 
 
 # Import routers
-from app.api import user_routes, recycler_routes, marketplace_routes, scan_routes, token_routes, impact_routes, credit_routes
+from app.api import user_routes, recycler_routes, marketplace_routes, scan_routes, token_routes, impact_routes, credit_routes, bhashini_routes
 
 app.include_router(user_routes.router, prefix="/api", tags=["User"])
 app.include_router(scan_routes.router, prefix="/api", tags=["Scan"])
@@ -72,6 +90,7 @@ app.include_router(marketplace_routes.router, prefix="/api", tags=["Marketplace"
 app.include_router(token_routes.router, prefix="/api", tags=["Tokens"])
 app.include_router(impact_routes.router, prefix="/api", tags=["Impact"])
 app.include_router(credit_routes.router, prefix="/api", tags=["Credits"])
+app.include_router(bhashini_routes.router, prefix="/api/bhashini", tags=["Bhashini Translation"])
 
 
 @app.get("/")

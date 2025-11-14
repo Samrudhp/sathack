@@ -15,6 +15,7 @@ from app.rag.rag_service import rag_service
 from app.utils.llm_service import llm_service
 from app.utils.fraud_service import fraud_service
 from app.marketplace.marketplace_service import marketplace_service
+from app.services.bhashini_service import bhashini_service
 from app.services.database import (
     get_pending_items_collection,
     get_user_behavior_collection,
@@ -224,12 +225,28 @@ async def scan_image(
         logger.info("LLM reasoning complete")
         
         # ==========================================
-        # STEP 9: Final Output Translation
+        # STEP 9: Final Output Translation (Bhashini)
         # ==========================================
         output_text = llm_response.get("disposal_instruction", "")
         
         if language == "hi":
-            output_text = await llm_service.translate_to_hindi(output_text)
+            # Use Bhashini for high-quality Indian language translation
+            logger.info("Translating output to Hindi using Bhashini")
+            translated_text = await bhashini_service.translate_with_fallback(
+                text=output_text,
+                source_language="en",
+                target_language="hi"
+            )
+            output_text = translated_text
+        elif language in ["pa", "bn", "ta", "te", "mr", "gu", "kn", "ml", "or", "as"]:
+            # Support for other Indian languages via Bhashini
+            logger.info(f"Translating output to {language} using Bhashini")
+            translated_text = await bhashini_service.translate_with_fallback(
+                text=output_text,
+                source_language="en",
+                target_language=language
+            )
+            output_text = translated_text
         
         # ==========================================
         # STEP 10: Backend Updates
@@ -395,13 +412,22 @@ async def voice_input(
     Process voice input → Transcribe → RAG Query → LLM Response
     """
     try:
-        logger.info(f"Voice input from user {user_id}")
+        logger.info(f"Voice input from user {user_id}, language={language}")
+        logger.info(f"Audio file: {audio.filename}, content_type={audio.content_type}")
         
         # Read audio
         audio_bytes = await audio.read()
+        logger.info(f"Audio bytes received: {len(audio_bytes)} bytes")
+        
+        if len(audio_bytes) == 0:
+            raise HTTPException(status_code=400, detail="Empty audio file received")
         
         # Transcribe
+        logger.info("Starting transcription...")
         transcription = await voice_service.transcribe_audio(audio_bytes, language)
+        
+        if not transcription or not transcription.get("text"):
+            raise HTTPException(status_code=400, detail="Could not transcribe audio. Please speak clearly.")
         
         text = transcription["text"]
         detected_language = transcription["language"]
@@ -434,10 +460,10 @@ async def voice_input(
         if latitude and longitude:
             try:
                 recycler_ranking = await marketplace_service.rank_recyclers(
-                    material=material_detected,
                     user_lat=latitude,
                     user_lon=longitude,
-                    user_id=user_id
+                    material=material_detected,
+                    weight_kg=1.0  # Default 1kg for voice queries
                 )
                 logger.info(f"Voice scan: Found {len(recycler_ranking)} recyclers")
             except Exception as e:
@@ -458,9 +484,21 @@ async def voice_input(
         # Extract response
         output_text = llm_response.get("disposal_instruction", "")
         
-        # Translate response if needed
+        # Translate response if needed (using Bhashini for Indian languages)
         if language == "hi" and output_text:
-            output_text = await llm_service.translate_to_hindi(output_text)
+            logger.info("Translating voice response to Hindi using Bhashini")
+            output_text = await bhashini_service.translate_with_fallback(
+                text=output_text,
+                source_language="en",
+                target_language="hi"
+            )
+        elif language in ["pa", "bn", "ta", "te", "mr", "gu", "kn", "ml", "or", "as"] and output_text:
+            logger.info(f"Translating voice response to {language} using Bhashini")
+            output_text = await bhashini_service.translate_with_fallback(
+                text=output_text,
+                source_language="en",
+                target_language=language
+            )
         
         logger.info(f"Voice query processed with LLM response")
         
@@ -545,9 +583,21 @@ async def rag_query(
         # Extract response
         output_text = llm_response.get("disposal_instruction", "")
         
-        # Translate response if needed
+        # Translate response if needed (using Bhashini for Indian languages)
         if language == "hi" and output_text:
-            output_text = await llm_service.translate_to_hindi(output_text)
+            logger.info("Translating RAG response to Hindi using Bhashini")
+            output_text = await bhashini_service.translate_with_fallback(
+                text=output_text,
+                source_language="en",
+                target_language="hi"
+            )
+        elif language in ["pa", "bn", "ta", "te", "mr", "gu", "kn", "ml", "or", "as"] and output_text:
+            logger.info(f"Translating RAG response to {language} using Bhashini")
+            output_text = await bhashini_service.translate_with_fallback(
+                text=output_text,
+                source_language="en",
+                target_language=language
+            )
         
         logger.info(f"LLM response generated")
         
