@@ -7,8 +7,8 @@ export const useGeolocation = () => {
   useEffect(() => {
     if (!navigator.geolocation) {
       setError('Geolocation not supported');
-      // Fallback to Delhi
-      setLocation(28.6139, 77.2090);
+      // Fallback to Patiala (where recyclers are located)
+      setLocation(30.34, 76.38);
       return;
     }
 
@@ -18,8 +18,8 @@ export const useGeolocation = () => {
       },
       (error) => {
         console.error('Geolocation error:', error);
-        // Fallback to Delhi
-        setLocation(28.6139, 77.2090);
+        // Fallback to Patiala (where recyclers are located)
+        setLocation(30.34, 76.38);
         setError(error.message);
       },
       { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }

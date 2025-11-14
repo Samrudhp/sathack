@@ -72,6 +72,9 @@ class LLMService:
             # Parse structured output
             parsed = self._parse_llm_response(llm_text, vision_labels, material, weight_estimate)
             
+            # Add the full formatted response to preserve emojis and formatting
+            parsed["disposal_instruction"] = llm_text  # Use full LLM response with formatting
+            
             return parsed
             
         except Exception as e:
@@ -99,7 +102,15 @@ class LLMService:
         
         # Vision analysis
         prompt_parts.append(f"## Vision Analysis")
-        prompt_parts.append(f"Material detected: {vision_labels.get('material', 'Unknown')}")
+        
+        # Add detailed description if available
+        detailed_desc = vision_labels.get('detailed_description')
+        if detailed_desc:
+            prompt_parts.append(f"What I see: {detailed_desc}")
+            prompt_parts.append("")
+        
+        prompt_parts.append(f"Material category: {vision_labels.get('material', 'Unknown')}")
+        prompt_parts.append(f"Raw detection: {vision_labels.get('raw_detection', 'N/A')}")
         prompt_parts.append(f"Confidence: {vision_labels.get('confidence', 0):.2f}")
         prompt_parts.append(f"Cleanliness score: {vision_labels.get('cleanliness_score', 0)}/100")
         
@@ -144,18 +155,60 @@ class LLMService:
         # Instructions
         prompt_parts.append(f"## Your Task")
         prompt_parts.append(
-            f"Based on the above information, provide comprehensive waste disposal guidance. "
-            f"Structure your response as follows:\n"
+            f"Provide comprehensive waste disposal guidance. "
+            f"CRITICAL: You MUST clearly separate general municipal guidelines from personalized user recommendations.\n"
             f"\n"
-            f"1. **Disposal Instructions**: Step-by-step guide on how to properly dispose of this item.\n"
-            f"2. **Hazard Notes**: Any safety warnings or special handling requirements.\n"
-            f"3. **Cleaning Recommendations**: How to prepare the item for recycling.\n"
-            f"4. **Recycler Ranking**: Brief evaluation of the best recycler options.\n"
-            f"5. **Route Summary**: Transportation and logistics suggestions.\n"
-            f"6. **Estimated Credits**: Token/credits the user can expect (base rate × weight × cleanliness/100).\n"
-            f"7. **Environmental Impact**: CO₂, water, and landfill savings.\n"
-            f"8. **Pickup Suggestions**: When and how to schedule pickup.\n"
-            f"9. **Citations**: Reference which rules/guidelines you used.\n"
+            f"Format your response EXACTLY like this:\n"
+            f"\n"
+            f"═══════════════════════════════════════════════════\n"
+            f"                      SUMMARY                       \n"
+            f"═══════════════════════════════════════════════════\n"
+            f"\n"
+            f"Material Type:          [e.g., PET Plastic]\n"
+            f"Recyclable:             [Yes/No]\n"
+            f"Recommended Action:     [Brief 1-2 sentence summary]\n"
+            f"Best Recycler:          [User's preferred recycler or closest option]\n"
+            f"Estimated Credits:      [X tokens]\n"
+            f"Environmental Impact:   [Key benefit in 1 sentence]\n"
+            f"\n"
+            f"═══════════════════════════════════════════════════\n"
+            f"\n"
+            f"**1. Disposal Instructions**\n"
+            f"\n"
+            f"Municipal Guidelines:\n"
+            f"[Use information from 'Municipal Rules & Guidelines' section above]\n"
+            f"- Step 1: ...\n"
+            f"- Step 2: ...\n"
+            f"\n"
+            f"Personalized Recommendations (Based on Your Past Behavior):\n"
+            f"[Use information from 'User's Past Behavior' section above]\n"
+            f"- You previously preferred...\n"
+            f"- Your usual practice is...\n"
+            f"\n"
+            f"**2. Hazard Notes**\n"
+            f"[Any safety warnings]\n"
+            f"\n"
+            f"**3. Cleaning Recommendations**\n"
+            f"[How to prepare for recycling]\n"
+            f"\n"
+            f"**4. Recycler Ranking**\n"
+            f"Your Preferred Recyclers: [If user has past recycler data, mention it here]\n"
+            f"Nearby Options: [List available recyclers from 'Available Recyclers' section]\n"
+            f"\n"
+            f"**5. Route Summary**\n"
+            f"[Transportation suggestions]\n"
+            f"\n"
+            f"**6. Estimated Credits**\n"
+            f"[Token calculation]\n"
+            f"\n"
+            f"**7. Environmental Impact**\n"
+            f"[CO₂, water, landfill savings]\n"
+            f"\n"
+            f"**8. Pickup Suggestions**\n"
+            f"[Scheduling recommendations]\n"
+            f"\n"
+            f"**9. Citations**\n"
+            f"[Which guidelines you referenced]\n"
         )
         
         return "\n".join(prompt_parts)

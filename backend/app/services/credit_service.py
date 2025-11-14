@@ -196,13 +196,16 @@ class CreditService:
             if not user:
                 raise ValueError("User not found")
             
+            # Get stats from nested object or flat fields (for backwards compatibility)
+            stats = user.get("stats", {})
+            
             return {
-                "total_scans": user.get("total_scans", 0),
-                "tokens_earned": user.get("tokens_earned", 0),
-                "tokens_balance": user.get("tokens_balance", 0),
-                "total_co2_saved_kg": user.get("total_co2_saved_kg", 0.0),
-                "total_water_saved_liters": user.get("total_water_saved_liters", 0.0),
-                "total_landfill_saved_kg": user.get("total_landfill_saved_kg", 0.0)
+                "total_scans": stats.get("total_scans", user.get("total_scans", 0)),
+                "tokens_earned": stats.get("tokens_earned", user.get("tokens_earned", 0)),
+                "tokens_balance": stats.get("tokens_balance", user.get("tokens_balance", 0)),
+                "total_co2_saved_kg": stats.get("total_co2_saved_kg", user.get("total_co2_saved_kg", 0.0)),
+                "total_water_saved_liters": stats.get("total_water_saved_liters", user.get("total_water_saved_liters", 0.0)),
+                "total_landfill_saved_kg": stats.get("total_landfill_saved_kg", user.get("total_landfill_saved_kg", 0.0))
             }
             
         except Exception as e:

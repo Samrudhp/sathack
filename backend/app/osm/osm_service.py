@@ -158,7 +158,17 @@ class OSMService:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
-                data = response.json()
+                
+                # Check if response has content before parsing JSON
+                if not response.text or response.text.strip() == "":
+                    logger.warning("OSRM returned empty response, using haversine fallback")
+                    return await self._haversine_route(start_lat, start_lon, end_lat, end_lon)
+                
+                try:
+                    data = response.json()
+                except Exception as json_err:
+                    logger.warning(f"OSRM returned invalid JSON: {json_err}, using haversine fallback")
+                    return await self._haversine_route(start_lat, start_lon, end_lat, end_lon)
             
             if data.get("code") == "Ok" and data.get("routes"):
                 route = data["routes"][0]

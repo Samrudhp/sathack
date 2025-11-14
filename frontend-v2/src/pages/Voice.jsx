@@ -86,7 +86,7 @@ export default function Voice() {
     <div className="min-h-screen p-6" style={{ background: '#faf8f3' }}>
       <div className="max-w-2xl mx-auto">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className="mb-6 font-semibold flex items-center gap-2 hover:gap-4 transition-all rounded-full px-6 py-3"
           style={{
             color: '#2d5016',

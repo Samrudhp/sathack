@@ -14,6 +14,7 @@ from app.fusion.fusion_service import fusion_service
 from app.rag.rag_service import rag_service
 from app.utils.llm_service import llm_service
 from app.utils.fraud_service import fraud_service
+from app.marketplace.marketplace_service import marketplace_service
 from app.services.database import (
     get_pending_items_collection,
     get_user_behavior_collection,
@@ -139,6 +140,56 @@ async def scan_image(
         # ==========================================
         # STEP 8: LLM Reasoning (English only)
         # ==========================================
+        
+        # Estimate realistic weight based on material type
+        def estimate_item_weight(material: str, raw_detection: str = "") -> float:
+            """Estimate weight in kg based on material and what CLIP detected"""
+            # Check raw detection for specific items
+            detection_lower = raw_detection.lower()
+            
+            # Specific item weights
+            if "bottle" in detection_lower:
+                if "glass" in detection_lower:
+                    return 0.3  # Glass bottle ~300g
+                else:
+                    return 0.03  # Plastic bottle ~30g
+            elif "can" in detection_lower:
+                if "aluminum" in detection_lower:
+                    return 0.015  # Aluminum can ~15g
+                else:
+                    return 0.05  # Steel can ~50g
+            elif "cardboard box" in detection_lower:
+                return 0.2  # Small box ~200g
+            elif "battery" in detection_lower:
+                return 0.05  # AA battery ~50g
+            elif "electronic" in detection_lower or "headphone" in detection_lower:
+                return 0.1  # Small electronics ~100g
+            
+            # Material-based defaults (for when specific item not detected)
+            material_weights = {
+                "PET": 0.03,  # Plastic bottle
+                "HDPE": 0.05,  # Plastic container
+                "Plastic": 0.05,  # Generic plastic
+                "Paper": 0.01,  # Single sheet
+                "Cardboard": 0.15,  # Box
+                "Glass": 0.3,  # Bottle
+                "Aluminum": 0.015,  # Can
+                "Steel": 0.05,  # Can
+                "E-Waste": 0.15,  # Small device
+                "Organic/Bio Waste": 0.1,  # Fruit peel
+                "Textile": 0.2,  # Cloth item
+                "Mixed Waste": 0.1,  # Generic
+            }
+            
+            return material_weights.get(material, 0.1)  # Default 100g
+        
+        weight_estimate = estimate_item_weight(
+            material, 
+            vision_prediction.get("raw_detection", "")
+        )
+        
+        logger.info(f"Estimated weight: {weight_estimate} kg for {material}")
+        
         # Get recycler info
         from app.marketplace.marketplace_service import marketplace_service
         
@@ -146,7 +197,7 @@ async def scan_image(
             user_lat=latitude,
             user_lon=longitude,
             material=material,
-            weight_kg=1.0,  # Estimate
+            weight_kg=weight_estimate,
             ward=osm_context.get("ward")
         )
         
@@ -160,14 +211,14 @@ async def scan_image(
         ]
         
         llm_response = await llm_service.reason_about_waste(
-            query=query_en or f"How to dispose {material}?",
+            query=query_en or vision_prediction.get("detailed_description", f"How to dispose {material}?"),
             vision_labels=vision_prediction,
             osm_context=osm_context,
             global_docs=global_docs,
             personal_docs=personal_docs,
             recycler_info=recycler_info,
             material=material,
-            weight_estimate=1.0
+            weight_estimate=weight_estimate
         )
         
         logger.info("LLM reasoning complete")
@@ -218,6 +269,40 @@ async def scan_image(
                 "$inc": {"total_scans": 1},
                 "$set": {"updated_at": datetime.utcnow()}
             }
+        )
+        
+        # Update user_behavior collection with this scan
+        user_behavior_collection = get_user_behavior_collection()
+        
+        # Create scan summary for recent_scans
+        scan_summary = {
+            "scan_id": scan_id,
+            "material": material,
+            "cleanliness_score": cleanliness_score,
+            "timestamp": datetime.utcnow(),
+            "location": {
+                "type": "Point",
+                "coordinates": [longitude, latitude]
+            }
+        }
+        
+        # Update user behavior
+        await user_behavior_collection.update_one(
+            {"user_id": ObjectId(user_id)},
+            {
+                "$push": {
+                    "recent_scans": {
+                        "$each": [scan_summary],
+                        "$slice": -50  # Keep only last 50 scans
+                    }
+                },
+                "$inc": {"total_scans": 1},
+                "$set": {
+                    "updated_at": datetime.utcnow(),
+                    "last_scan_at": datetime.utcnow()
+                }
+            },
+            upsert=True  # Create if doesn't exist
         )
         
         # Update heatmap
@@ -273,6 +358,8 @@ async def scan_image(
         return {
             "scan_id": scan_id,
             "material": material,
+            "material_description": vision_prediction.get("detailed_description", material),  # NEW: Rich description
+            "raw_detection": vision_prediction.get("raw_detection", material),  # NEW: What CLIP actually saw
             "confidence": vision_prediction["confidence"],
             "cleanliness_score": cleanliness_score,
             "hazard_class": hazard_class,
@@ -339,6 +426,23 @@ async def voice_input(
         
         logger.info(f"Voice RAG: Retrieved {len(global_docs)} global docs, {len(personal_docs)} personal docs")
         
+        # Get material from transcription (try to extract it)
+        material_detected = "Plastic"  # Default material for recycler search
+        
+        # Rank recyclers if location provided
+        recycler_ranking = []
+        if latitude and longitude:
+            try:
+                recycler_ranking = await marketplace_service.rank_recyclers(
+                    material=material_detected,
+                    user_lat=latitude,
+                    user_lon=longitude,
+                    user_id=user_id
+                )
+                logger.info(f"Voice scan: Found {len(recycler_ranking)} recyclers")
+            except Exception as e:
+                logger.warning(f"Failed to rank recyclers for voice scan: {e}")
+        
         # Use LLM for reasoning
         llm_response = await llm_service.reason_about_waste(
             query=query_en or "How to dispose this waste?",
@@ -346,7 +450,7 @@ async def voice_input(
             osm_context={},
             global_docs=global_docs,
             personal_docs=personal_docs,
-            recycler_info=[],
+            recycler_info=recycler_ranking[:3] if recycler_ranking else [],
             material="General",
             weight_estimate=1.0
         )
@@ -380,6 +484,7 @@ async def voice_input(
                 "water_saved_liters": llm_response.get("water_saved_liters", 0),
                 "landfill_saved_kg": llm_response.get("landfill_saved_kg", 0)
             },
+            "recycler_ranking": recycler_ranking if recycler_ranking else [],
             "citations": llm_response.get("citations", []),
             "global_docs_count": len(global_docs),
             "personal_docs_count": len(personal_docs),

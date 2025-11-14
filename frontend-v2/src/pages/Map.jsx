@@ -82,7 +82,7 @@ export default function Map() {
     <div className="min-h-screen bg-beige p-6">
       <div className="max-w-6xl mx-auto">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className="mb-6 text-forest font-semibold flex items-center gap-2 hover:gap-4 transition-all"
         >
           ← {language === 'en' ? 'Back' : 'वापस'}

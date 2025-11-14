@@ -48,17 +48,19 @@ class Settings(BaseSettings):
     FUSION_WEIGHT_TIME: float = 0.1
     
     # Material Base Rates (credits per kg)
+    # Higher rates so even small items (30g bottle = 0.03kg) get meaningful tokens
     MATERIAL_RATES: dict = {
-        "PET": 12.0,
-        "HDPE": 10.0,
-        "Paper": 5.0,
-        "Glass": 4.0,
-        "Metal": 15.0,
-        "E-Waste": 20.0,
-        "Cardboard": 6.0,
-        "Aluminum": 18.0,
-        "Steel": 8.0,
-        "Plastic": 7.0,
+        "PET": 400.0,           # 30g bottle = 12 tokens
+        "HDPE": 350.0,          # 30g container = 10 tokens
+        "Paper": 150.0,         # 50g paper = 8 tokens
+        "Glass": 100.0,         # 300g bottle = 30 tokens
+        "Metal": 500.0,         # 15g can = 8 tokens
+        "E-Waste": 600.0,       # 100g headphones = 60 tokens
+        "Cardboard": 200.0,     # 100g box = 20 tokens
+        "Aluminum": 600.0,      # 15g can = 9 tokens
+        "Steel": 300.0,         # 50g scrap = 15 tokens
+        "Plastic": 250.0,       # Generic plastic = 25 tokens/kg
+        "Organic/Bio Waste": 50.0,  # 100g peel = 5 tokens
     }
     
     # Impact Formulas (per kg)

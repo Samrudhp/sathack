@@ -42,7 +42,7 @@ class MarketplaceService:
             
             # Try geospatial query first
             try:
-                # Find recyclers within 20km using $near
+                # Find recyclers within 50km using $near
                 recyclers_cursor = recyclers_collection.find({
                     "is_active": True,
                     "location": {
@@ -51,7 +51,7 @@ class MarketplaceService:
                                 "type": "Point",
                                 "coordinates": [user_lon, user_lat]
                             },
-                            "$maxDistance": 20000  # 20km
+                            "$maxDistance": 50000  # 50km
                         }
                     }
                 })
@@ -77,10 +77,10 @@ class MarketplaceService:
                         distance_km = self._haversine_distance(
                             user_lat, user_lon, rec_lat, rec_lon
                         )
-                        if distance_km <= 20:
+                        if distance_km <= 50:
                             recyclers.append(rec)
                 
-                logger.info(f"After distance filter: {len(recyclers)} recyclers within 20km")
+                logger.info(f"After distance filter: {len(recyclers)} recyclers within 50km")
             
             if not recyclers:
                 logger.warning("No recyclers found nearby")
@@ -143,11 +143,15 @@ class MarketplaceService:
             material_accept_score = 0.0
             material_rate = 0.0
             
+            # Define plastic types for generic "Plastic" matching
+            plastic_types = ["PET", "HDPE", "PP", "LDPE", "PVC", "PS"]
+            
             # Handle both formats: list of strings OR list of dicts
             if materials_accepted:
                 # Check if it's a list of strings (simple format from seed data)
                 if isinstance(materials_accepted[0], str):
                     # Simple format: ["PET", "HDPE", "Paper"]
+                    # Check for exact match
                     if material in materials_accepted:
                         material_accept_score = 1.0
                         # Use default rate or price multiplier
@@ -155,10 +159,22 @@ class MarketplaceService:
                         base_rate = settings.MATERIAL_RATES.get(material, 5.0)
                         price_multiplier = recycler.get("price_multiplier", 1.0)
                         material_rate = base_rate * price_multiplier
+                    # If material is generic "Plastic", check if recycler accepts any plastic type
+                    elif material == "Plastic":
+                        for plastic_type in plastic_types:
+                            if plastic_type in materials_accepted:
+                                material_accept_score = 0.9  # Slightly lower score for generic match
+                                from app.config import settings
+                                base_rate = settings.MATERIAL_RATES.get(plastic_type, 5.0)
+                                price_multiplier = recycler.get("price_multiplier", 1.0)
+                                material_rate = base_rate * price_multiplier
+                                break
                 else:
                     # Complex format: [{"material": "PET", "accepts": true, "rate_per_kg": 12}]
                     for mat in materials_accepted:
-                        if mat.get("material") == material and mat.get("accepts", False):
+                        mat_type = mat.get("material")
+                        # Exact match
+                        if mat_type == material and mat.get("accepts", False):
                             material_accept_score = 1.0
                             material_rate = mat.get("rate_per_kg", 0.0)
                             
@@ -168,6 +184,19 @@ class MarketplaceService:
                             
                             if weight_kg < min_weight or weight_kg > max_weight:
                                 material_accept_score = 0.5  # Partial score
+                            
+                            break
+                        # Generic "Plastic" match
+                        elif material == "Plastic" and mat_type in plastic_types and mat.get("accepts", False):
+                            material_accept_score = 0.9
+                            material_rate = mat.get("rate_per_kg", 0.0)
+                            
+                            # Check weight limits
+                            min_weight = mat.get("min_weight_kg", 0)
+                            max_weight = mat.get("max_weight_kg", 1000)
+                            
+                            if weight_kg < min_weight or weight_kg > max_weight:
+                                material_accept_score = 0.45  # Partial score
                             
                             break
             
@@ -209,6 +238,12 @@ class MarketplaceService:
             return {
                 "recycler_id": str(recycler["_id"]),
                 "recycler_name": recycler.get("name", "Unknown"),
+                "name": recycler.get("name", "Unknown"),  # Duplicate for compatibility
+                "address": recycler.get("address", ""),
+                "phone": recycler.get("phone", ""),
+                "operating_hours": recycler.get("operating_hours", ""),
+                "rating": recycler.get("rating", 4.0),
+                "materials_accepted": recycler.get("materials_accepted", []),
                 "distance_km": distance_km,
                 "distance_score": distance_score,
                 "material_accept_score": material_accept_score,

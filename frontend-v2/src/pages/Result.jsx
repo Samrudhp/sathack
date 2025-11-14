@@ -1,6 +1,40 @@
 import { useNavigate } from 'react-router-dom';
 import { useScanStore, useUserStore } from '../store';
 
+// Helper function to format markdown text
+function formatMarkdownText(text) {
+  if (!text) return '';
+  
+  // Remove markdown headers (## Step 1:, etc.)
+  text = text.replace(/^#{1,6}\s+.*$/gm, '');
+  
+  // Remove bold markers (**text** -> text)
+  text = text.replace(/\*\*(.*?)\*\*/g, '$1');
+  
+  // Remove italic markers (*text* -> text)
+  text = text.replace(/\*(.*?)\*/g, '$1');
+  
+  // Remove numbered list markers that are too verbose (## Step X:)
+  text = text.replace(/^Step \d+:.*$/gm, '');
+  
+  // Clean up multiple consecutive newlines
+  text = text.replace(/\n{3,}/g, '\n\n');
+  
+  // Remove lines that start with "The final answer is:"
+  text = text.replace(/^The final answer is:.*$/gm, '');
+  
+  // Extract only the essential disposal instructions (numbered list at the end)
+  const finalInstructions = text.match(/^\d+\.\s+\*\*.*?\*\*:.*$/gm);
+  if (finalInstructions && finalInstructions.length > 0) {
+    return finalInstructions
+      .map(line => line.replace(/\*\*/g, '').replace(/^\d+\.\s+/, '• '))
+      .join('\n\n');
+  }
+  
+  // If no structured list found, clean and return the text
+  return text.trim();
+}
+
 function Result() {
   const navigate = useNavigate();
   const { currentScan, globalDocs, personalDocs } = useScanStore();
@@ -14,7 +48,7 @@ function Result() {
             {language === 'en' ? 'No scan data found' : 'कोई स्कैन डेटा नहीं मिला'}
           </p>
           <button 
-            onClick={() => navigate('/')} 
+            onClick={() => navigate('/home')} 
             className="px-8 py-3 rounded-full font-semibold transition-all hover:scale-105"
             style={{
               background: 'linear-gradient(135deg, #4a7c2c 0%, #2d5016 100%)',
@@ -31,6 +65,8 @@ function Result() {
 
   const {
     material,
+    material_description,  // NEW: Detailed CLIP description
+    raw_detection,         // NEW: Exact CLIP label
     transcribed_text,  // For voice scans
     confidence,
     cleanliness_score,
@@ -42,6 +78,9 @@ function Result() {
     recycler_ranking,
   } = currentScan;
   
+  // Use detailed description for display, fallback to raw_detection, then material
+  const displayMaterial = raw_detection || material || (language === 'en' ? 'General Waste' : 'सामान्य कचरा');
+  
   // Check if this is a voice scan
   const isVoiceScan = !!transcribed_text;
 
@@ -49,7 +88,7 @@ function Result() {
     <div className="min-h-screen p-6" style={{ background: '#faf8f3' }}>
       <div className="max-w-4xl mx-auto">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className="mb-6 font-semibold flex items-center gap-2 hover:gap-4 transition-all rounded-full px-6 py-3"
           style={{
             color: '#2d5016',
@@ -76,8 +115,19 @@ function Result() {
         <div className="card mb-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 text-8xl opacity-5">♻️</div>
           <h2 className="text-2xl font-bold mb-3 relative z-10" style={{ color: '#2d5016' }}>
-            {material || (language === 'en' ? 'General Waste' : 'सामान्य कचरा')}
+            {displayMaterial}
           </h2>
+          
+          {/* Show material category badge */}
+          {raw_detection && material && raw_detection !== material && (
+            <div className="mb-3 inline-block px-4 py-1 rounded-full text-sm font-semibold relative z-10" style={{
+              background: 'rgba(74, 124, 44, 0.1)',
+              color: '#2d5016',
+              border: '1px solid #87a878'
+            }}>
+              Category: {material}
+            </div>
+          )}
           
           {/* Show transcribed text for voice scans */}
           {isVoiceScan && transcribed_text && (
@@ -133,7 +183,7 @@ function Result() {
             border: '2px solid #e8dfd0'
           }}>
             <p className="whitespace-pre-wrap leading-relaxed" style={{ color: '#5f7c4d' }}>
-              {disposal_instruction || (language === 'en' ? 'Dispose of this item responsibly.' : 'इस वस्तु को जिम्मेदारी से निपटाएं।')}
+              {formatMarkdownText(disposal_instruction) || (language === 'en' ? 'Dispose of this item responsibly.' : 'इस वस्तु को जिम्मेदारी से निपटाएं।')}
             </p>
           </div>
         </div>

@@ -24,31 +24,61 @@ class VisionService:
         
         # Material categories for zero-shot classification
         self.material_labels = [
+            # Plastics
             "plastic PET bottle",
             "plastic HDPE container",
+            "general plastic waste",
+            "plastic bag",
+            "plastic wrapper",
+            
+            # Paper & Cardboard
             "paper document",
             "cardboard box",
+            "newspaper",
+            
+            # Glass & Metals
             "glass bottle",
-            "metal can",
             "aluminum can",
+            "metal can",
             "steel container",
-            "electronic waste",
+            "metal scrap",
+            
+            # Electronics & Batteries
+            "headphones or earbuds",
+            "mobile phone or smartphone",
+            "laptop or computer",
+            "charger or power adapter",
+            "electrical cable or wire",
+            "electronic circuit board",
             "battery",
-            "general plastic waste",
-            "mixed waste",
-            "organic waste",
+            "electronic waste",
+            
+            # Organic/Bio Waste (Enhanced)
+            "fruit peel and food scraps",
+            "vegetable waste and peels",
+            "apple peel or banana peel",
+            "orange peel or citrus waste",
+            "rotten fruit or spoiled food",
+            "kitchen food waste",
+            "garden leaves and plant waste",
+            "organic compostable waste",
+            "cooked food leftovers",
+            "raw vegetable scraps",
+            
+            # Other
             "textile fabric",
+            "mixed waste",
         ]
         
-        # Hazard categories
+        # Hazard categories - be specific to avoid false positives on organic waste
         self.hazard_labels = [
-            "battery",
-            "broken glass",
-            "chemical container",
-            "syringe",
-            "sharp object",
-            "biohazard",
-            "no hazard",
+            "lithium battery or power cell",
+            "broken glass with sharp edges",
+            "chemical container or toxic bottle",
+            "medical syringe or needle",
+            "metal knife or blade",
+            "medical biohazard waste",
+            "safe recyclable material with no hazard",
         ]
         
         # Cleanliness descriptors
@@ -161,12 +191,24 @@ class VisionService:
             material = material_result["label"]
             material_confidence = material_result["confidence"]
             
+            # Get top 3 predictions for richer context
+            top_predictions = material_result["all_scores"][:3]
+            
             # Map to standard material names
             material_mapped = self._map_material(material)
             
-            # Hazard class (if not "no hazard")
+            # Create detailed description based on what CLIP sees
+            detailed_description = self._create_detailed_description(
+                top_predictions,
+                hazard_result,
+                cleanliness_result
+            )
+            
+            # Hazard class (if not "no hazard" or "safe")
             hazard_class = None
-            if hazard_result["label"] != "no hazard" and hazard_result["confidence"] > 0.4:
+            hazard_label = hazard_result["label"].lower()
+            if ("safe" not in hazard_label and "no hazard" not in hazard_label 
+                and hazard_result["confidence"] > 0.5):  # Higher threshold to reduce false positives
                 hazard_class = hazard_result["label"]
             
             # Cleanliness score (0-100)
@@ -175,6 +217,8 @@ class VisionService:
             return {
                 "material": material_mapped,
                 "confidence": material_confidence,
+                "detailed_description": detailed_description,  # NEW: Rich context for RAG
+                "raw_detection": material,  # What CLIP actually detected
                 "all_predictions": material_result["all_scores"],
                 "cleanliness_score": cleanliness_score,
                 "hazard_class": hazard_class,
@@ -227,32 +271,110 @@ class VisionService:
             logger.error(f"Classification failed: {e}")
             raise
     
+    def _create_detailed_description(
+        self,
+        top_predictions: List[Dict],
+        hazard_result: Dict,
+        cleanliness_result: Dict
+    ) -> str:
+        """
+        Create a detailed, human-readable description of what CLIP detected.
+        This provides rich context for the RAG system instead of just keywords.
+        """
+        parts = []
+        
+        # Main detection with confidence
+        primary = top_predictions[0]
+        parts.append(f"I detect {primary['label']}")
+        
+        # Add confidence qualifier
+        if primary['score'] > 0.7:
+            parts.append("with high confidence")
+        elif primary['score'] > 0.5:
+            parts.append("with moderate confidence")
+        else:
+            parts.append("but I'm not entirely certain")
+        
+        # Alternative interpretations if they're close
+        if len(top_predictions) > 1:
+            second = top_predictions[1]
+            if second['score'] > 0.3:  # If second prediction is significant
+                parts.append(f", though it could also be {second['label']}")
+                
+                if len(top_predictions) > 2:
+                    third = top_predictions[2]
+                    if third['score'] > 0.2:
+                        parts.append(f" or {third['label']}")
+        
+        description = "".join(parts) + "."
+        
+        # Add cleanliness context
+        clean_label = cleanliness_result['label']
+        if "dirty" in clean_label or "contaminated" in clean_label:
+            description += f" The item appears {clean_label.replace('recyclable material', '').strip()}."
+        elif "clean" in clean_label:
+            description += f" The item appears {clean_label.replace('recyclable material', '').strip()}."
+        
+        # Add hazard warning if detected (with higher threshold)
+        hazard_label = hazard_result['label'].lower()
+        if ("safe" not in hazard_label and "no hazard" not in hazard_label 
+            and hazard_result['confidence'] > 0.5):  # Higher threshold
+            description += f" ⚠️ Warning: This may be {hazard_result['label']}."
+        
+        return description
+    
     def _map_material(self, predicted_label: str) -> str:
         """Map CLIP label to standard material name"""
         label_lower = predicted_label.lower()
         
-        if "pet" in label_lower:
+        # Organic/Bio Waste (check first since it's commonly misclassified)
+        if any(keyword in label_lower for keyword in [
+            "fruit", "vegetable", "peel", "food", "kitchen", 
+            "organic", "compost", "garden", "leaves", "plant",
+            "apple", "banana", "orange", "citrus", "rotten", "spoiled",
+            "cooked", "leftovers", "scraps"
+        ]):
+            return "Organic/Bio Waste"
+        
+        # Plastics
+        elif "pet" in label_lower:
             return "PET"
         elif "hdpe" in label_lower:
             return "HDPE"
-        elif "paper" in label_lower:
+        elif "plastic" in label_lower:
+            return "Plastic"
+        
+        # Paper & Cardboard
+        elif "paper" in label_lower or "newspaper" in label_lower:
             return "Paper"
         elif "cardboard" in label_lower:
             return "Cardboard"
+        
+        # Glass & Metals
         elif "glass" in label_lower:
             return "Glass"
         elif "aluminum" in label_lower:
             return "Aluminum"
-        elif "steel" in label_lower or "metal can" in label_lower:
+        elif "steel" in label_lower or "metal" in label_lower:
             return "Steel"
-        elif "electronic" in label_lower or "e-waste" in label_lower:
+        
+        # Electronics & Batteries
+        elif any(keyword in label_lower for keyword in [
+            "electronic", "e-waste", "electrical", "headphone", "earbuds",
+            "phone", "smartphone", "laptop", "computer", "charger", 
+            "adapter", "cable", "wire", "circuit"
+        ]):
             return "E-Waste"
         elif "battery" in label_lower:
             return "E-Waste"
-        elif "plastic" in label_lower:
-            return "Plastic"
+        
+        # Textiles
+        elif "textile" in label_lower or "fabric" in label_lower:
+            return "Textile"
+        
+        # Default to mixed waste (not plastic)
         else:
-            return "Plastic"  # Default
+            return "Mixed Waste"
     
     def _compute_cleanliness_score(self, cleanliness_result: Dict) -> float:
         """Compute cleanliness score from 0-100"""

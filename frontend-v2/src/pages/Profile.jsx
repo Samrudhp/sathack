@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store';
 
-const HARDCODED_USER_ID = '673fc7f4f1867ab46b0a8c01';
+const HARDCODED_USER_ID = '691642ec8c548b95117f24c1';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -100,7 +100,7 @@ export default function Profile() {
     <div className="min-h-screen p-6" style={{ background: '#faf8f3' }}>
       <div className="max-w-4xl mx-auto">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/home')}
           className="mb-6 font-semibold flex items-center gap-2 hover:gap-4 transition-all rounded-full px-6 py-3"
           style={{
             color: '#2d5016',
