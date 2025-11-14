@@ -48,10 +48,10 @@ export const scanImage = async (imageFile, userId, latitude, longitude, language
   formData.append('longitude', longitude.toString());
   formData.append('language', language);
   
-  console.log('Sending POST to:', `${API_BASE}/scan_image`);
+  console.log('Sending POST to:', `${API_BASE}/scan/scan_image`);
   
   try {
-    const response = await api.post('/scan_image', formData, {
+    const response = await api.post('/scan/scan_image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     console.log('Scan response:', response.data);
@@ -72,7 +72,7 @@ export const voiceInput = async (audioBlob, userId, latitude, longitude, languag
   if (longitude) formData.append('longitude', longitude.toString());
   formData.append('language', language);
   
-  const response = await api.post('/voice_input', formData, {
+  const response = await api.post('/scan/voice_input', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
@@ -85,7 +85,7 @@ export const ragQuery = async (userId, query, language = 'en') => {
   formData.append('query', query);
   formData.append('language', language);
   
-  const response = await api.post('/rag_query', formData, {
+  const response = await api.post('/scan/rag_query', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;

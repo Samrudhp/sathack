@@ -84,7 +84,7 @@ app.add_middleware(
 from app.api import user_routes, recycler_routes, marketplace_routes, scan_routes, token_routes, impact_routes, credit_routes, bhashini_routes
 
 app.include_router(user_routes.router, prefix="/api", tags=["User"])
-app.include_router(scan_routes.router, prefix="/api", tags=["Scan"])
+app.include_router(scan_routes.router, prefix="/api/scan", tags=["Scan"])
 app.include_router(recycler_routes.router, prefix="/api/recycler", tags=["Recycler"])
 app.include_router(marketplace_routes.router, prefix="/api", tags=["Marketplace"])
 app.include_router(token_routes.router, prefix="/api", tags=["Tokens"])

@@ -60,7 +60,7 @@ export default function Landing() {
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-5xl md:text-7xl font-bold mb-6" style={{ 
+          <h1 className="text-3xl md:text-4xl font-bold mb-6" style={{ 
             color: '#2d5016',
             lineHeight: '1.2',
             textShadow: '3px 3px 0px rgba(135, 168, 120, 0.15)'
@@ -76,13 +76,25 @@ export default function Landing() {
             </span>
           </h1>
 
-          {/* Subheadline */}
-          <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed" style={{ color: '#5f7c4d' }}>
-            Smart recycling powered by AI. Scan, earn rewards, and make a lasting impact on our planet—one item at a time.
-          </p>
+          {/* Environmental Graphic - Small & Centered */}
+          <div className="mb-8 max-w-2xl mx-auto">
+            <div className="rounded-2xl overflow-hidden" style={{
+              boxShadow: '0 10px 30px rgba(45, 80, 22, 0.15)'
+            }}>
+              <img 
+                src="/assets/environ.png" 
+                alt="AI-Powered Environmental Technology"
+                className="w-full h-auto"
+                style={{
+                  display: 'block',
+                  animation: 'scale-in 0.8s ease-out'
+                }}
+              />
+            </div>
+          </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
             <Link 
               to="/home"
               className="px-10 py-5 rounded-full font-bold text-lg transition-all hover:scale-105 hover:shadow-2xl"
@@ -107,6 +119,11 @@ export default function Landing() {
               Learn More
             </a>
           </div>
+
+          {/* Subheadline */}
+          <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed" style={{ color: '#5f7c4d' }}>
+            Smart recycling powered by AI. Scan, earn rewards, and make a lasting impact on our planet—one item at a time.
+          </p>
 
           {/* Stats Badges */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
@@ -168,6 +185,42 @@ export default function Landing() {
           </svg>
         </div>
       </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-24 px-6" style={{ background: '#faf8f3' }}>
+      </section>
+
+      {/* Full-Width Environmental Graphic Section */}
+      /* <section className="py-16 px-6 md:px-12" style={{ 
+        background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 50%, #e8f5e9 100%)' 
+      }}>
+        <div className="max-w-7xl mx-auto">
+          <div className="rounded-3xl overflow-hidden" style={{
+            boxShadow: '0 20px 60px rgba(45, 80, 22, 0.2)'
+          }}>
+            <img 
+              src="/assets/environ.png" 
+              alt="AI-Powered Environmental Technology"
+              className="w-full h-auto"
+              style={{
+                display: 'block',
+                animation: 'scale-in 1s ease-out'
+              }}
+            />
+          </div>
+          
+          {/* Caption Below Image */}
+          <div className="text-center mt-8">
+            <h3 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: '#2d5016' }}>
+              Where Technology Meets Sustainability
+            </h3>
+            <p className="text-lg max-w-3xl mx-auto" style={{ color: '#5f7c4d' }}>
+              Our AI-powered platform combines computer vision, natural language processing, and smart routing 
+              to make recycling effortless, rewarding, and impactful for everyone.
+            </p>
+          </div>
+        </div>
+      </section> 
 
       {/* Features Section */}
       <section id="features" className="py-24 px-6" style={{ 
@@ -462,6 +515,20 @@ export default function Landing() {
           <p>© 2025 ReNova. Making recycling simple and rewarding.</p>
         </div>
       </footer>
+
+      {/* Animations */}
+      <style>{`
+        @keyframes scale-in {
+          0% {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </div>
   );
 }

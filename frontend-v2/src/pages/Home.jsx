@@ -54,36 +54,89 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Welcome Banner - Wavy Design */}
-        <div className="mb-12 relative overflow-hidden" style={{
-          background: 'linear-gradient(135deg, #b4d4a5 0%, #87a878 100%)',
-          borderRadius: '2rem',
-          padding: '2.5rem',
+        {/* Hero Section with Environmental Graphic */}
+        <div className="mb-12 relative overflow-hidden rounded-3xl" style={{
+          background: 'linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%)',
           boxShadow: '0 8px 32px rgba(45, 80, 22, 0.15)'
         }}>
-          <div className="absolute top-0 right-0 text-9xl opacity-10">🌿</div>
-          <div className="absolute bottom-0 left-0 text-7xl opacity-10 transform rotate-180">🍃</div>
-          
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-bold" style={{
-              background: 'rgba(255, 255, 255, 0.9)',
-              color: '#2d5016',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-            }}>
-              {user?.name?.charAt(0) || '🌱'}
-            </div>
-            <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-white mb-1">
-                {language === 'en' ? `Hey ${user?.name}!` : `नमस्ते ${user?.name}!`}
-              </h2>
-              <p className="text-white/90">
+          <div className="grid md:grid-cols-2 gap-8 items-center p-8 md:p-12">
+            {/* Text Content */}
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl font-bold" style={{
+                  background: 'linear-gradient(135deg, #4a7c2c 0%, #2d5016 100%)',
+                  color: 'white',
+                  boxShadow: '0 4px 12px rgba(45, 80, 22, 0.3)'
+                }}>
+                  {user?.name?.charAt(0) || '🌱'}
+                </div>
+                <div>
+                  <h2 className="text-3xl md:text-4xl font-bold" style={{ color: '#2d5016' }}>
+                    {language === 'en' ? `Hey ${user?.name}!` : `नमस्ते ${user?.name}!`}
+                  </h2>
+                  <p style={{ color: '#5f7c4d', fontSize: '1.1rem' }}>
+                    {language === 'en' 
+                      ? 'Ready to make a difference today?' 
+                      : 'आज बदलाव लाने के लिए तैयार हैं?'}
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-lg mb-6" style={{ color: '#4a7c2c' }}>
                 {language === 'en' 
-                  ? 'Ready to make a difference today?' 
-                  : 'आज बदलाव लाने के लिए तैयार हैं?'}
+                  ? 'Join thousands of eco-warriors turning waste into wealth with AI-powered recycling intelligence.' 
+                  : 'AI-संचालित रीसाइक्लिंग बुद्धिमत्ता के साथ कचरे को धन में बदलने वाले हजारों पर्यावरण योद्धाओं में शामिल हों।'}
               </p>
+              
+              <div className="flex flex-wrap gap-4">
+                <div className="px-4 py-2 rounded-full" style={{ background: 'rgba(74, 124, 44, 0.1)' }}>
+                  <span className="text-sm font-semibold" style={{ color: '#2d5016' }}>
+                    🎯 {language === 'en' ? 'Smart Scanning' : 'स्मार्ट स्कैनिंग'}
+                  </span>
+                </div>
+                <div className="px-4 py-2 rounded-full" style={{ background: 'rgba(74, 124, 44, 0.1)' }}>
+                  <span className="text-sm font-semibold" style={{ color: '#2d5016' }}>
+                    🪙 {language === 'en' ? 'Earn Tokens' : 'टोकन कमाएं'}
+                  </span>
+                </div>
+                <div className="px-4 py-2 rounded-full" style={{ background: 'rgba(74, 124, 44, 0.1)' }}>
+                  <span className="text-sm font-semibold" style={{ color: '#2d5016' }}>
+                    🌍 {language === 'en' ? 'Save Planet' : 'पृथ्वी बचाएं'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Environmental Graphic */}
+            <div className="relative">
+              <img 
+                src="/assets/environ.png" 
+                alt="Environmental AI Technology"
+                className="w-full h-auto rounded-2xl"
+                style={{
+                  filter: 'drop-shadow(0 10px 20px rgba(45, 80, 22, 0.2))',
+                  animation: 'float 6s ease-in-out infinite'
+                }}
+              />
+              <div className="absolute -top-4 -right-4 w-24 h-24 rounded-full opacity-20" style={{
+                background: 'radial-gradient(circle, #4a7c2c 0%, transparent 70%)',
+                animation: 'pulse 3s ease-in-out infinite'
+              }}></div>
             </div>
           </div>
         </div>
+        
+        {/* Add animation keyframes */}
+        <style>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.1); }
+          }
+        `}</style>
 
         {/* Feature Grid - Asymmetric Layout */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-12">
