@@ -11,9 +11,28 @@
             box-sizing: border-box;
         }
 
+        :root {
+            /* v2 Color Theme */
+            --color-beige: #f5f0e6;
+            --color-beige-light: #faf7f2;
+            --color-beige-dark: #e8dfd0;
+            
+            --color-forest: #2f5233;
+            --color-forest-light: #3d6b42;
+            --color-forest-dark: #1f3622;
+            
+            --color-olive: #afc3a2;
+            --color-olive-light: #c4d4b9;
+            --color-olive-dark: #8fa985;
+            
+            --color-hazard: #b73939;
+            --color-hazard-light: #d14545;
+            --color-hazard-dark: #8a2a2a;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #8B7355 0%, #6B8E23 100%);
+            font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+            background-color: var(--color-beige);
             min-height: 100vh;
             padding: 20px;
         }
@@ -24,15 +43,20 @@
         }
 
         .card {
-            background: #F5E6D3;
-            border-radius: 15px;
-            padding: 30px;
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
         h1, h2, h3 {
-            color: #2D4A2B;
+            color: var(--color-forest);
             margin-bottom: 20px;
         }
 
@@ -43,34 +67,42 @@
 
         input, select {
             width: 100%;
-            padding: 12px;
+            padding: 0.75rem 1rem;
             margin: 10px 0;
-            border: 2px solid #8B7355;
-            border-radius: 8px;
+            border: 2px solid var(--color-olive);
+            border-radius: 0.5rem;
             font-size: 16px;
             background: white;
+            transition: border-color 0.2s;
         }
 
         input:focus, select:focus {
             outline: none;
-            border-color: #6B8E23;
+            border-color: var(--color-forest);
         }
 
         button {
             width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #6B8E23 0%, #556B2F 100%);
+            padding: 0.75rem 1.5rem;
+            background-color: var(--color-forest);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 0.5rem;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
             margin-top: 10px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         button:hover {
-            opacity: 0.9;
+            background-color: var(--color-forest-dark);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: scale(0.95);
         }
 
         .stats-grid {
@@ -81,11 +113,18 @@
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #6B8E23 0%, #556B2F 100%);
+            background: var(--color-forest);
             color: white;
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 0.75rem;
             text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            background: var(--color-forest-light);
+            transform: translateY(-2px);
         }
 
         .stat-value {
@@ -100,19 +139,19 @@
         }
 
         .code-display {
-            background: white;
+            background: var(--color-beige-light);
             padding: 30px;
-            border-radius: 10px;
+            border-radius: 0.75rem;
             text-align: center;
             margin: 20px 0;
-            border: 3px solid #6B8E23;
+            border: 3px solid var(--color-forest);
         }
 
         .code {
             font-size: 48px;
             font-weight: bold;
             letter-spacing: 8px;
-            color: #2D4A2B;
+            color: var(--color-forest);
             font-family: 'Courier New', monospace;
         }
 
@@ -122,11 +161,17 @@
         }
 
         .delivery-item {
-            background: white;
+            background: var(--color-beige-light);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 0.5rem;
             margin-bottom: 10px;
-            border-left: 4px solid #6B8E23;
+            border-left: 4px solid var(--color-forest);
+            transition: all 0.2s;
+        }
+
+        .delivery-item:hover {
+            background: var(--color-olive-light);
+            border-left-color: var(--color-forest-dark);
         }
 
         .hidden {
@@ -142,8 +187,12 @@
 
         .logout-btn {
             width: auto;
-            padding: 10px 20px;
-            background: #DC3545;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--color-hazard);
+        }
+
+        .logout-btn:hover {
+            background-color: var(--color-hazard-dark);
         }
 
         .form-group {
@@ -153,23 +202,23 @@
         label {
             display: block;
             margin-bottom: 5px;
-            color: #2D4A2B;
+            color: var(--color-forest);
             font-weight: 600;
         }
 
         .success-message {
-            background: #6B8E23;
+            background: var(--color-forest-light);
             color: white;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 0.5rem;
             margin: 10px 0;
         }
 
         .error-message {
-            background: #DC3545;
+            background: var(--color-hazard);
             color: white;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 0.5rem;
             margin: 10px 0;
         }
     </style>
