@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Button, Card } from '../components';
-import { colors, spacing, borderRadius } from '../theme';
+import { colors, spacing, borderRadius, shadows } from '../theme';
 import { useUserStore, useScanStore } from '../store';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { voiceInput } from '../services/api';
@@ -143,47 +143,53 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxl,
   },
   iconBadge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: colors.warning,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadows.lg,
   },
   icon: {
-    fontSize: 40,
+    fontSize: 48,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.forest,
+    lineHeight: 38,
   },
   recordSection: {
     alignItems: 'center',
     marginVertical: spacing.xxl,
+    paddingVertical: spacing.xl,
   },
   recordButton: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
+    ...shadows.xl,
   },
   recordIcon: {
-    fontSize: 48,
+    fontSize: 56,
   },
   recordText: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.forest,
+    textAlign: 'center',
   },
   errorCard: {
     padding: spacing.lg,
-    borderRadius: borderRadius.lg,
+    borderRadius: 28,
     backgroundColor: colors.danger,
     marginBottom: spacing.lg,
+    ...shadows.lg,
   },
   errorText: {
     color: colors.white,

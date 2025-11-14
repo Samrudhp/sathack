@@ -19,7 +19,7 @@ function App() {
     // Ensure user is initialized (for testing without auth)
     if (!user || !user.id) {
       console.log('Initializing mock user...');
-      const mockUserId = '691642ec8c548b95117f24c1';  // Valid ObjectId from backend seeded data
+      const mockUserId = '673fc7f4f1867ab46b0a8c01';  // Valid ObjectId from backend seeded data
       setUser({
         id: mockUserId,
         name: 'Test User',

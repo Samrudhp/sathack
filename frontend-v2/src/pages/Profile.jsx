@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store';
 
-const HARDCODED_USER_ID = '691642ec8c548b95117f24c1';
+const HARDCODED_USER_ID = '673fc7f4f1867ab46b0a8c01';
 
 export default function Profile() {
   const navigate = useNavigate();

@@ -29,10 +29,12 @@
         "RECORD_AUDIO",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
     },
     "plugins": [
       [
@@ -47,6 +49,9 @@
           "locationAlwaysAndWhenInUsePermission": "Allow ReNova to use your location to find nearby recyclers."
         }
       ]
-    ]
+    ],
+    "web": {
+      "favicon": "./assets/icon.png"
+    }
   }
 }

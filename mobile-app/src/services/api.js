@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // Update this to match your backend URL
-const API_BASE = 'http://192.168.1.100:8000/api'; // Replace with your computer's IP address
+// Your computer's IP: 172.16.16.114
+const API_BASE = 'http://172.16.16.114:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE,
@@ -151,7 +152,7 @@ export const getImpactStats = async (userId, scope = 'user', period = 'all_time'
 
 // Get token balance (wallet)
 export const getTokenBalance = async (userId) => {
-  const response = await api.get(`/wallet/${userId}`);
+  const response = await api.get(`/user/token_balance/${userId}`);
   return response.data;
 };
 

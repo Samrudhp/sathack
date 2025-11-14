@@ -1,29 +1,83 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card, Button } from '../components';
-import { colors, spacing, borderRadius } from '../theme';
+import { colors, spacing, borderRadius, shadows } from '../theme';
 import { useUserStore } from '../store';
-import { getTokenBalance } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+
+const API_BASE = 'http://172.16.16.114:8000/api';
 
 export default function ProfileScreen({ navigation }) {
   const { t } = useTranslation();
   const { user, userId, language, setLanguage, logout } = useUserStore();
-  const [tokens, setTokens] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [redeemCode, setRedeemCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    loadTokens();
+    loadStats();
   }, []);
 
-  const loadTokens = async () => {
+  const loadStats = async () => {
     try {
-      const data = await getTokenBalance(userId);
-      setTokens(data);
+      const response = await axios.get(`${API_BASE}/user/stats/${userId}`);
+      setStats(response.data);
     } catch (err) {
-      console.error('Failed to load tokens:', err);
+      console.error('Failed to load stats:', err);
+      setStats({
+        total_scans: 0,
+        tokens_earned: 0,
+        tokens_balance: 0,
+        total_co2_saved_kg: 0,
+        total_water_saved_liters: 0,
+        total_landfill_saved_kg: 0
+      });
     }
   };
+
+  const handleRedeem = async () => {
+    if (!redeemCode || redeemCode.length !== 6) {
+      Alert.alert('Error', 'Please enter a valid 6-character code');
+      return;
+    }
+
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      const formData = new FormData();
+      formData.append('user_id', userId);
+      formData.append('code', redeemCode.toUpperCase());
+
+      const response = await axios.post(`${API_BASE}/user/redeem`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      Alert.alert(
+        'Success!',
+        `You earned ${response.data.tokens_awarded} tokens!`,
+        [{ text: 'OK', onPress: () => {
+          setRedeemCode('');
+          loadStats();
+        }}]
+      );
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to redeem code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!stats) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -39,16 +93,71 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.phone}>{user?.phone}</Text>
       </View>
 
-      {/* Token Wallet */}
-      <LinearGradient colors={[colors.forest, colors.leafLight]} style={styles.tokenCard}>
-        <Text style={styles.tokenTitle}>🪙 {t('tokenWallet')}</Text>
-        <Text style={styles.tokenValue}>{tokens?.balance || 0}</Text>
-        <Text style={styles.tokenLabel}>{t('availableTokens')}</Text>
+      {/* Total Impact */}
+      <LinearGradient colors={[colors.sageLight, colors.sage]} style={styles.impactCard}>
+        <Text style={styles.impactTitle}>🌍 Total Impact</Text>
+        <View style={styles.impactGrid}>
+          <View style={styles.impactItem}>
+            <Text style={styles.impactValue}>{stats.total_co2_saved_kg.toFixed(1)}</Text>
+            <Text style={styles.impactLabel}>kg CO₂</Text>
+          </View>
+          <View style={styles.impactItem}>
+            <Text style={styles.impactValue}>{stats.total_water_saved_liters.toFixed(0)}</Text>
+            <Text style={styles.impactLabel}>Liters Water</Text>
+          </View>
+          <View style={styles.impactItem}>
+            <Text style={styles.impactValue}>{stats.total_landfill_saved_kg.toFixed(1)}</Text>
+            <Text style={styles.impactLabel}>kg Landfill</Text>
+          </View>
+        </View>
+        
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statValue}>{stats.total_scans}</Text>
+            <Text style={styles.statLabel}>Total Scans</Text>
+          </View>
+          <View style={styles.tokenBox}>
+            <Text style={styles.tokenValue}>{stats.tokens_balance}</Text>
+            <Text style={styles.tokenLabel}>Tokens Available</Text>
+          </View>
+        </View>
       </LinearGradient>
+
+      {/* Redeem Code */}
+      <Card style={styles.redeemCard}>
+        <Text style={styles.sectionTitle}>🎫 Redeem Code</Text>
+        <Text style={styles.redeemDesc}>
+          Enter the 6-character code from the recycler to claim your tokens!
+        </Text>
+        
+        <View style={styles.redeemInputContainer}>
+          <TextInput
+            style={styles.redeemInput}
+            value={redeemCode}
+            onChangeText={(text) => setRedeemCode(text.toUpperCase())}
+            placeholder="ABC123"
+            maxLength={6}
+            autoCapitalize="characters"
+            editable={!loading}
+          />
+          <TouchableOpacity
+            style={[styles.redeemButton, loading && styles.redeemButtonDisabled]}
+            onPress={handleRedeem}
+            disabled={loading}
+          >
+            <LinearGradient
+              colors={[colors.leafLight, colors.forest]}
+              style={styles.redeemButtonGradient}
+            >
+              <Text style={styles.redeemButtonText}>{loading ? 'Redeeming...' : 'Redeem'}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </Card>
 
       {/* Settings */}
       <Card style={styles.settingsCard}>
-        <Text style={styles.sectionTitle}>{t('settings')}</Text>
+        <Text style={styles.sectionTitle}>⚙️ {t('settings')}</Text>
         
         <View style={styles.settingItem}>
           <Text style={styles.settingLabel}>{t('language')}</Text>
@@ -81,6 +190,16 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingTop: spacing.xxl,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.cream,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: colors.forest,
+  },
   backButton: {
     marginBottom: spacing.lg,
   },
@@ -100,54 +219,162 @@ const styles = StyleSheet.create({
     backgroundColor: colors.forest,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadows.lg,
   },
   avatarText: {
-    fontSize: 40,
+    fontSize: 42,
     fontWeight: 'bold',
     color: colors.white,
   },
   name: {
-    fontSize: 24,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.forest,
+    marginBottom: spacing.sm,
+  },
+  phone: {
+    fontSize: 16,
+    color: colors.moss,
+    fontWeight: '500',
+  },
+  impactCard: {
+    padding: spacing.xl,
+    paddingVertical: spacing.xxl,
+    borderRadius: 24,
+    marginBottom: spacing.xl,
+    ...shadows.lg,
+  },
+  impactTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.white,
+    marginBottom: spacing.xl,
+    textAlign: 'center',
+  },
+  impactGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xl,
+    gap: spacing.sm,
+  },
+  impactItem: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: spacing.lg,
+    borderRadius: 20,
+    flex: 1,
+  },
+  impactValue: {
+    fontSize: 26,
     fontWeight: 'bold',
     color: colors.forest,
     marginBottom: spacing.xs,
   },
-  phone: {
-    fontSize: 14,
+  impactLabel: {
+    fontSize: 12,
     color: colors.moss,
-  },
-  tokenCard: {
-    padding: spacing.xl,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  tokenTitle: {
-    fontSize: 16,
+    textAlign: 'center',
     fontWeight: '600',
-    color: colors.white,
-    marginBottom: spacing.sm,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  statBox: {
+    flex: 1,
+    padding: spacing.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(135, 168, 120, 0.4)',
+    alignItems: 'center',
+  },
+  tokenBox: {
+    flex: 1,
+    padding: spacing.lg,
+    backgroundColor: colors.forest,
+    borderRadius: 20,
+    alignItems: 'center',
+    ...shadows.md,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.forest,
+    marginBottom: spacing.xs,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: colors.moss,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   tokenValue: {
-    fontSize: 48,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.white,
     marginBottom: spacing.xs,
   },
   tokenLabel: {
     fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  redeemCard: {
+    marginBottom: spacing.xl,
+  },
+  redeemDesc: {
+    fontSize: 15,
+    color: colors.moss,
+    marginBottom: spacing.lg,
+    lineHeight: 22,
+  },
+  redeemInputContainer: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  redeemInput: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: colors.sand,
+    backgroundColor: colors.white,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: 3,
+    color: colors.forest,
+    textAlign: 'center',
+  },
+  redeemButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  redeemButtonDisabled: {
+    opacity: 0.6,
+  },
+  redeemButtonGradient: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  redeemButtonText: {
     color: colors.white,
-    opacity: 0.9,
+    fontSize: 16,
+    fontWeight: '700',
   },
   settingsCard: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.forest,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   settingItem: {
     flexDirection: 'row',
@@ -155,8 +382,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   settingLabel: {
-    fontSize: 16,
+    fontSize: 17,
     color: colors.forest,
+    fontWeight: '600',
   },
   languageToggle: {
     flexDirection: 'row',

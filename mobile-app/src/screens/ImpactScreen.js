@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Card, Loader } from '../components';
-import { colors, spacing, borderRadius } from '../theme';
+import { colors, spacing, borderRadius, shadows } from '../theme';
 import { useUserStore } from '../store';
-import { getImpactStats } from '../services/api';
+import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+
+const API_BASE = 'http://172.16.16.114:8000/api';
 
 export default function ImpactScreen({ navigation }) {
   const { t } = useTranslation();
@@ -15,14 +17,25 @@ export default function ImpactScreen({ navigation }) {
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [userId]);
 
   const loadStats = async () => {
     try {
-      const data = await getImpactStats(userId, 'user', 'all_time');
-      setStats(data);
+      console.log('Loading stats for user:', userId);
+      const response = await axios.get(`${API_BASE}/user/stats/${userId}`);
+      console.log('Impact stats:', response.data);
+      setStats(response.data);
     } catch (err) {
       console.error('Failed to load impact stats:', err);
+      // Set default stats on error
+      setStats({
+        total_scans: 0,
+        tokens_earned: 0,
+        tokens_balance: 0,
+        total_co2_saved_kg: 0,
+        total_water_saved_liters: 0,
+        total_landfill_saved_kg: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -56,7 +69,7 @@ export default function ImpactScreen({ navigation }) {
         <Card style={styles.statCard}>
           <LinearGradient colors={[colors.warning, colors.danger]} style={styles.statGradient}>
             <Text style={styles.statIcon}>🪙</Text>
-            <Text style={styles.statValue}>{stats?.total_tokens || 0}</Text>
+            <Text style={styles.statValue}>{stats?.tokens_balance || 0}</Text>
             <Text style={styles.statLabel}>{t('tokensEarned')}</Text>
           </LinearGradient>
         </Card>
@@ -68,17 +81,17 @@ export default function ImpactScreen({ navigation }) {
         <View style={styles.impactGrid}>
           <View style={styles.impactItem}>
             <Text style={styles.impactIcon}>☁️</Text>
-            <Text style={styles.impactValue}>{(stats?.co2_saved || 0).toFixed(2)}</Text>
+            <Text style={styles.impactValue}>{(stats?.total_co2_saved_kg || 0).toFixed(2)}</Text>
             <Text style={styles.impactUnit}>kg CO₂</Text>
           </View>
           <View style={styles.impactItem}>
             <Text style={styles.impactIcon}>💧</Text>
-            <Text style={styles.impactValue}>{(stats?.water_saved || 0).toFixed(2)}</Text>
+            <Text style={styles.impactValue}>{(stats?.total_water_saved_liters || 0).toFixed(2)}</Text>
             <Text style={styles.impactUnit}>liters</Text>
           </View>
           <View style={styles.impactItem}>
             <Text style={styles.impactIcon}>🗑️</Text>
-            <Text style={styles.impactValue}>{(stats?.landfill_saved || 0).toFixed(2)}</Text>
+            <Text style={styles.impactValue}>{(stats?.total_landfill_saved_kg || 0).toFixed(2)}</Text>
             <Text style={styles.impactUnit}>kg</Text>
           </View>
         </View>
@@ -109,77 +122,85 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   iconBadge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: colors.sky,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+    ...shadows.lg,
   },
   icon: {
-    fontSize: 40,
+    fontSize: 48,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.forest,
+    lineHeight: 38,
   },
   mainStats: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
+    gap: spacing.lg,
+    marginBottom: spacing.xl,
   },
   statCard: {
     flex: 1,
     padding: 0,
     overflow: 'hidden',
+    borderRadius: 24,
   },
   statGradient: {
-    padding: spacing.lg,
+    padding: spacing.xl,
+    paddingVertical: spacing.xxl + spacing.md,
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 160,
   },
   statIcon: {
-    fontSize: 32,
-    marginBottom: spacing.sm,
+    fontSize: 40,
+    marginBottom: spacing.md,
   },
   statValue: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
     color: colors.white,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.white,
     textAlign: 'center',
+    fontWeight: '600',
   },
   card: {
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.forest,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   impactGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: spacing.md,
   },
   impactItem: {
     alignItems: 'center',
     flex: 1,
   },
   impactIcon: {
-    fontSize: 40,
-    marginBottom: spacing.sm,
+    fontSize: 48,
+    marginBottom: spacing.md,
   },
   impactValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: colors.forest,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   impactUnit: {
     fontSize: 12,

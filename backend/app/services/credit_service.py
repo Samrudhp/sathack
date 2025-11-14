@@ -166,6 +166,23 @@ class CreditService:
             
             logger.info(f"Updated user stats - matched: {update_result.matched_count}, modified: {update_result.modified_count}")
             
+            # ALSO UPDATE WALLET - THIS IS THE FIX!
+            from app.services.database import get_wallets_collection
+            wallets_collection = get_wallets_collection()
+            wallet_result = await wallets_collection.update_one(
+                {"user_id": ObjectId(user_id)},
+                {
+                    "$inc": {
+                        "balance": redemption["tokens"],
+                        "total_earned": redemption["tokens"]
+                    },
+                    "$set": {
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            logger.info(f"Updated wallet - matched: {wallet_result.matched_count}, modified: {wallet_result.modified_count}")
+            
             # Verify the update
             updated_user = await users_collection.find_one({"_id": ObjectId(user_id)})
             if updated_user:

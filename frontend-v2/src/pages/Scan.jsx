@@ -4,7 +4,7 @@ import { useUserStore, useScanStore } from '../store';
 import { useGeolocation } from '../hooks';
 import { scanImage } from '../api';
 
-const HARDCODED_USER_ID = '691642ec8c548b95117f24c1';
+const HARDCODED_USER_ID = '673fc7f4f1867ab46b0a8c01';
 
 export default function Scan() {
   const navigate = useNavigate();

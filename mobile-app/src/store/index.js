@@ -7,13 +7,13 @@ export const useUserStore = create(
   persist(
     (set) => ({
       user: { 
-        id: '691642ec8c548b95117f24c1',
+        id: '673fc7f4f1867ab46b0a8c01',
         name: 'Test User',
         phone: '+919876543210'
       },
-      userId: '691642ec8c548b95117f24c1',
+      userId: '673fc7f4f1867ab46b0a8c01',  // Hardcoded test user
       language: 'en',
-      setUser: (user) => set({ user, userId: user?.id || '691642ec8c548b95117f24c1' }),
+      setUser: (user) => set({ user, userId: user?.id || '673fc7f4f1867ab46b0a8c01' }),
       setUserId: (userId) => set({ userId }),
       setLanguage: (language) => set({ language }),
       logout: () => set({ user: null, userId: null }),
