@@ -1,0 +1,40 @@
+{
+  "name": "renova-mobile",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "^14.0.4",
+    "@react-native-async-storage/async-storage": "^2.1.0",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/native-stack": "^6.11.0",
+    "axios": "^1.7.9",
+    "expo": "~52.0.0",
+    "expo-asset": "~11.0.1",
+    "expo-av": "~15.0.0",
+    "expo-camera": "~16.0.0",
+    "expo-file-system": "~18.0.0",
+    "expo-image-picker": "~16.0.0",
+    "expo-linear-gradient": "~14.0.1",
+    "expo-location": "~18.0.0",
+    "i18next": "^25.6.2",
+    "react": "18.3.1",
+    "react-i18next": "^16.3.2",
+    "react-native": "0.76.5",
+    "react-native-linear-gradient": "^2.8.3",
+    "react-native-maps": "1.18.0",
+    "react-native-safe-area-context": "4.14.0",
+    "react-native-screens": "~4.4.0",
+    "react-native-svg": "15.9.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0"
+  },
+  "private": true
+}
