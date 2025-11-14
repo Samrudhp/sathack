@@ -364,19 +364,7 @@ estimated_credits = weight_kg × material_rate × (cleanliness_score / 100)
 5. **Data Licensing** (anonymized)
    - Insights to waste management companies (₹50K-2L/month)
 
-### Cost Structure @ 100K Users/Day:
 
-| Item | Monthly Cost |
-|------|--------------|
-| AI Inference (Groq + Bhashini) | ₹2,000 |
-| Cloud Hosting (AWS/GCP) | ₹15,000 |
-| Database (MongoDB Atlas) | ₹8,000 |
-| CDN + Storage | ₹3,000 |
-| Support Staff (2 people) | ₹60,000 |
-| **TOTAL** | **₹88,000** |
-
-**Revenue @ 5% Premium Conversion**: ₹5L/month  
-**Profit Margin**: 82% 🎉
 
 ---
 
